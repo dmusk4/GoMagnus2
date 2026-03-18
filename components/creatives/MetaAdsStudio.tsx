@@ -174,9 +174,9 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
           const isImgLoading = taskQueue.has(`image-gen-${creative.id}`);
           const isTextLoading = taskQueue.has(`creative-refresh-text-${creative.id}`);
           // Fallback logic for per-creative base images: prefer its own array, then single, then global
-          const creativeBase = creative.selectedBaseImages?.length 
+          const creativeBase = creative.selectedBaseImages !== undefined
             ? creative.selectedBaseImages 
-            : (creative.selectedBaseImage ? [creative.selectedBaseImage] : globalBaseImages);
+            : (creative.selectedBaseImage !== undefined ? (creative.selectedBaseImage ? [creative.selectedBaseImage] : []) : globalBaseImages);
 
           return (
             <div key={creative.id} className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden flex flex-col relative group hover:shadow-2xl transition-all duration-500">

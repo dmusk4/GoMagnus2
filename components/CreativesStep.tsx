@@ -173,12 +173,11 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const setMetaShotType = (val: string) => updateSettings({ metaShotType: val });
 
   // Determine effective base image. 
-  // If explicit selection exists (even empty string for "none"), use it.
-  // Otherwise default to first product image.
+  // If explicit selection exists (even empty string or empty array for "none"), use it.
   // We use metaBaseImages (array) preferred, fallback to metaBaseImage (string) if array empty
-  const metaBaseImages = creativeSettings.metaBaseImages && creativeSettings.metaBaseImages.length > 0 
+  const metaBaseImages = creativeSettings.metaBaseImages !== undefined
       ? creativeSettings.metaBaseImages 
-      : (creativeSettings.metaBaseImage ? [creativeSettings.metaBaseImage] : (product.images.length > 0 ? [product.images[0]] : []));
+      : (creativeSettings.metaBaseImage !== undefined ? (creativeSettings.metaBaseImage ? [creativeSettings.metaBaseImage] : []) : (product.images.length > 0 ? [product.images[0]] : []));
   
   const setMetaBaseImages = (val: string[]) => updateSettings({ metaBaseImages: val });
 

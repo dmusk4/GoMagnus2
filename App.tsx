@@ -102,8 +102,8 @@ function App() {
     { id: 'product', label: t.steps.product },
     { id: 'dream_buyer', label: t.steps.dream_buyer },
     { id: 'market_intel', label: t.steps.market_intel },
-    { id: 'offer', label: t.steps.offer },
     { id: 'campaign_plan', label: t.steps.campaign_plan },
+    { id: 'offer', label: t.steps.offer },
     { id: 'creatives', label: t.steps.creatives },
     { id: 'sales_page', label: t.steps.sales_page },
     { id: 'blueprint', label: t.steps.blueprint },
@@ -1267,6 +1267,17 @@ function App() {
                           }, activeProduct.id);
                       }}
                     />;
+                    case 'campaign_plan': return <CampaignPlanStep 
+                      product={activeProduct} 
+                      language={language} 
+                      loading={taskQueue.has(`plan-gen-${activeProduct.id}`)} 
+                      onGenerate={(focus) => {
+                        updateProduct({ planFocus: focus });
+                        handleGenerateCampaignPlanTask(activeProduct.id, focus);
+                      }} 
+                      onClear={() => updateProduct({ campaignPlan: undefined })} 
+                      onUpdateFocus={(focus) => updateProduct({ planFocus: focus })}
+                    />;
                     case 'offer': return <PowerOfferStep 
                       product={activeProduct} 
                       language={language} 
@@ -1282,17 +1293,6 @@ function App() {
                       onUpdateFocus={(focus) => updateProduct({ offerFocus: focus })}
                       onRefreshOffer={() => handleRefreshOfferPart(activeProduct.id, 'offer', activeProduct.offerFocus)}
                       onRefreshBigIdea={() => handleRefreshOfferPart(activeProduct.id, 'bigIdea', activeProduct.offerFocus)}
-                    />;
-                    case 'campaign_plan': return <CampaignPlanStep 
-                      product={activeProduct} 
-                      language={language} 
-                      loading={taskQueue.has(`plan-gen-${activeProduct.id}`)} 
-                      onGenerate={(focus) => {
-                        updateProduct({ planFocus: focus });
-                        handleGenerateCampaignPlanTask(activeProduct.id, focus);
-                      }} 
-                      onClear={() => updateProduct({ campaignPlan: undefined })} 
-                      onUpdateFocus={(focus) => updateProduct({ planFocus: focus })}
                     />;
                     case 'creatives': return <CreativesStep 
                       product={activeProduct} 
