@@ -71,7 +71,7 @@ const BASE_SOCIAL_STYLES: Creative['style'][] = [
     'Breaking News',
     'SMS Notification',
     'Highlight Method',
-    'Secret Insider',
+    'Secret Info',
     'Social Gossip',
     'Short-Human', 
     'Product-Hero', 

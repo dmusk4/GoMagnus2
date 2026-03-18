@@ -146,6 +146,24 @@ export const buildCreativeImagePrompt = (
     Faces must be large enough, well lit and clearly visible.
     Goal: create emotional resonance, trust and identification with the viewer.
     `;
+  } else if (style === 'Secret Insider' || style === 'Secret Info') {
+    styleRules = `
+    Secret Info / Insider Rules:
+    Confidential aesthetic, report overlay, blurred sensitive sections, highlighted areas, secondary inset image, subtle grain.
+    Goal: Create a sense of exclusivity, leaked information, or insider knowledge.
+    `;
+  } else if (style === 'Social Gossip') {
+    styleRules = `
+    Social Gossip Rules:
+    Viral social post layout, primary image plus small secondary inset image, expressive faces, gossip/news vibe, high contrast, scroll-stopping composition.
+    CRITICAL: NO UI ELEMENTS. Do not include share icons, comment buttons, likes counts, footer text, or app interface overlays.
+    `;
+  } else if (style === 'Breaking News') {
+    styleRules = `
+    Breaking News Rules:
+    News broadcast aesthetic, breaking news lower third graphic style, 'LIVE' or 'URGENT' visual indicators, high contrast, bold typography, journalistic photography style.
+    Goal: Create an immediate sense of urgency and importance that stops the scroll.
+    `;
   } else {
     // Default / General fallback
     styleRules = `
@@ -180,12 +198,12 @@ export const buildSearchAdsPrompt = (
   return `Generate high-performance RSAs for product (Excluding Strategy):\n${sanitizeContext(productContext)}.\nMarket: ${location}.${directionContext}
             STRICT REQUIREMENT: Answer strictly in ${getLangName(lang)}.
             REQUISITOS OBRIGATÓRIOS:
-            1. Identifica INTENÇÕES DE PESQUISA (Price, Brand, Comparison, Urgent, General).
+            1. Identifica INTENÇÕES DE PESQUISA. DEVES GERAR OBRIGATORIAMENTE UMA CATEGORIA DE INTENT "GLOBAL", que seja mais pragmática, otimizada para CTR máximo e com keyword research altamente preciso e focado em conversão. Podes incluir outras intenções (Price, Brand, Comparison, Urgent).
             2. Para cada intenção, gera EXATAMENTE 4 anúncios RSAs distintos.
             3. Títulos (Headlines): Máximo 30 caracteres.
             4. Descrições (Descriptions): Máximo 90 caracteres.
             5. Caminhos (Paths): Máximo 15 caracteres.
-            6. Para cada anúncio individual dentro do grupo, fornece uma lista de 6 a 8 palavras-chave de intenção de busca específicas e NÃO genéricas.
+            6. Para cada anúncio individual dentro do grupo, fornece uma lista de 6 a 8 palavras-chave de intenção de busca específicas e NÃO genéricas (especialmente na categoria GLOBAL, onde a precisão é crítica).
             7. Inclui ativos (Sitelinks, Callouts, Structured Snippets).
             `;
 };

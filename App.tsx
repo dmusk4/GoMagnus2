@@ -1132,7 +1132,7 @@ function App() {
   const isStepComplete = (stepId: StrategyStep): boolean => {
     const prod = activeProduct;
     switch (stepId) {
-      case 'product': return !!(prod.name && prod.name !== 'New Product' && prod.description && prod.audienceType && prod.type && prod.goal && (prod.type === 'Physical' ? prod.images.length > 0 : true));
+      case 'product': return !!(prod.name && prod.name !== 'New Product' && prod.description && prod.audienceType && prod.type && prod.goal);
       case 'dream_buyer': return !!prod.dreamBuyer;
       case 'market_intel': return !!(prod.marketIntel && ((prod.marketIntel.workingNow && prod.marketIntel.workingNow.length > 0) || (prod.marketIntel.competitors && prod.marketIntel.competitors.length > 0) || prod.marketIntel.leanCanvas));
       case 'offer': return !!prod.offer; 

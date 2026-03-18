@@ -98,8 +98,6 @@ export const ProductStep: React.FC<ProductStepProps> = ({
         sectionRefs.product.current?.scrollIntoView({ behavior: 'smooth' });
       } else if (!activeProduct.description) {
         sectionRefs.product.current?.scrollIntoView({ behavior: 'smooth' });
-      } else if (activeProduct.type === 'Physical' && activeProduct.images.length === 0) {
-        sectionRefs.images.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (!activeProduct.audienceType || !activeProduct.decisionMaker) {
         sectionRefs.audience.current?.scrollIntoView({ behavior: 'smooth' });
       } else if (!activeProduct.goal) {
@@ -240,10 +238,10 @@ export const ProductStep: React.FC<ProductStepProps> = ({
               
               <div className="mb-8" ref={sectionRefs.images}>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center justify-between">
-                  <span className="flex items-center">{t.productStep.visualsLabel}{activeProduct.type === 'Physical' && (<span className="ml-2 px-1.5 py-0.5 rounded bg-red-50 text-red-500 text-[9px] font-bold border border-red-100 flex items-center"><AlertCircle size={8} className="mr-1" /> {t.productStep.visualsRequired}</span>)}</span>
+                  <span className="flex items-center">{t.productStep.visualsLabel}</span>
                   <span className="text-[9px] font-bold text-gray-400 opacity-60">TIP: Paste image directly from clipboard (Ctrl+V)</span>
                 </label>
-                <div className={`flex flex-wrap gap-4 p-2 rounded-2xl transition-all ${activeProduct.type === 'Physical' ? getValidationClass(activeProduct.images) : ''}`}>
+                <div className={`flex flex-wrap gap-4 p-2 rounded-2xl transition-all`}>
                   <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-all flex-shrink-0 group border-gray-300 text-gray-400 hover:border-indigo-500 hover:text-indigo-600">
                     <Upload size={20} className="mb-2 group-hover:scale-110 transition-transform"/>
                     <span className="text-[10px] font-bold uppercase tracking-wide">{t.common.upload}</span>

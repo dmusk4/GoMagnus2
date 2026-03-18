@@ -484,7 +484,7 @@ export interface LandingPageCopy {
 
 export interface Creative {
   id: string;
-  style: 'Direct-Response' | 'Breaking News' | 'SMS Notification' | 'Highlight Method' | 'Secret Insider' | 'Social Gossip' | 'Short-Human' | 'Product-Hero' | 'Stop-the-Scroll' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'YouTube-Thumbnail' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle';
+  style: 'Direct-Response' | 'Breaking News' | 'SMS Notification' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Product-Hero' | 'Stop-the-Scroll' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'YouTube-Thumbnail' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle';
   hook: string;
   headline: string;
   subheadline: string;
