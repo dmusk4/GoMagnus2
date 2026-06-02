@@ -16,16 +16,24 @@ export const buildMetaAdPrompt = (
 ): string => {
   let specificInstruction = "";
 
-  if (style === 'Pop-Culture-Twist') {
+  if (style === 'YouTube-Thumbnail') {
+      specificInstruction = "YOUTUBE THUMBNAIL FOCUS: Escreve um título incrivelmente curto, impactante e que gere curiosidade extrema (inspiração Mr. Beast). O foco deve estar em pouquíssimas palavras que causem choque ou desejo. O subtítulo deve apenas reforçar o choque e o copy principal deve ser direto e vibrante.";
+  } else if (style === 'Pop-Culture-Twist') {
       specificInstruction = "POP CULTURE TWIST: Create clever pop culture wordplay inspired by movies, music, or iconic phrases. Use humor that fits the product. Twist references creatively, never copy quotes exactly. Goal: Stop the scroll with a smart cultural wink.";
   } else if (style === 'Short-Human') {
       specificInstruction = "SHORT-HUMAN: RAW EMOTION. Write as a real person sharing a visceral moment related to the product and the specific ICP journey. Vulnerable, urgent, and unfiltered. Use any emojis that fit the mood. TOTAL CHARACTERS must be strictly under 240. It should feel like an authentic, honest message from one human to another.";
+  } else if (style === 'UGC/Raw') {
+      specificInstruction = "UGC/RAW FOCUS: O estilo deve ser extremamente real, amador, credível e orgânico. CRITICAL REQUIREMENT FOR visualPrompt: O campo \"visualPrompt\" de retorno DEVE obrigatoriamente começar por: \"foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual\" e descrever o produto ou uma pessoa em contexto de uso real de forma amadora.";
   } else if (style === 'Unique-Mechanism') {
       specificInstruction = `UNIQUE MECHANISM FOCUS: Your core focus is to explain and sell the UNIQUE MECHANISM of this product. Use this specific concept provided: "${strategicPillar}". Explain why this makes the result inevitable and superior to all common alternatives.`;
   } else if (style === 'Emotional-Driver') {
       specificInstruction = `EMOTIONAL DRIVER FOCUS: Your core focus is the deep emotional benefit of the product. Use this specific psychological trigger: "${strategicPillar}". Don't just list features; paint the picture of the final emotional state of the buyer.`;
   } else if (style === 'Viral-Angle') {
       specificInstruction = `VIRAL ANGLE FOCUS: Use this high-potential viral spark: "${strategicPillar}". Design the ad to be highly shareable, using controversy, massive results, or unique visual hooks.`;
+  } else if (style === 'Product-First') {
+      specificInstruction = "PRODUCT-FIRST FOCUS: Your goal is to write a perfect ad copy focusing 100% on the product itself. Keep it extremely pragmatic, short, direct, and written at a 4th grade level (simple vocabulary, short sentences, direct statements, objective and easy to read). Highlight direct utility, features, and specs clearly. No complex metaphors, stories, or emotional fluff.";
+  } else if (style === 'Storytelling') {
+      specificInstruction = "STORYTELLING FOCUS: Weave a captivating narrative context, starting with an immersive story hook that puts the reader in a high-stakes scenario. Build tension and reveal the product naturally as the hero/solution of the story.";
   } else if (style === 'Product-Hero' || style === 'Minimalist') {
       specificInstruction = "PRAGMATIC. Focus 100% on technical features, design, and direct utility. Ignore emotional hooks.";
   } else {
@@ -51,8 +59,13 @@ export const buildMetaAdPrompt = (
   2. Não uses placeholders. Escreve texto final pronto para publicar.
   3. REGRAS DE TRATAMENTO OBRIGATÓRIO: Dirige-te ao utilizador estritamente por "TU". NÃO uses "Você".
   4. RESTRIÇÃO DE ESPAÇO: 
-     - "headline": Máximo 35 caracteres.
-     - "subheadline": Máximo 40 caracteres.`;
+     - "headline": ${style === 'YouTube-Thumbnail' ? 'Máximo 3/4 palavras. Muito curto e chocante (ex: "Fiz isto durante 30 dias!", "O segredo revelado!").' : 'Máximo 35 caracteres.'}
+     - "subheadline": ${style === 'YouTube-Thumbnail' ? 'Máximo 25 caracteres.' : 'Máximo 40 caracteres.'}
+  
+  ${style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST start exactly with: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual, " followed by a description of the scene in a realistic, amateur, and candid setting. Never describe generic commercial studio setups, stock photos, clean-cut vectors, or 3D renderings.` : style === 'Product-First' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a high-quality professional product photography setup. The "visualPrompt" field MUST start exactly with: "fotografia de alta qualidade do produto, tirada numa canon eos r50, lente 85mm com shallow depth of field, iluminação de estúdio profissional, cinematic, fundo clean sem ruído, " followed by a description of the product in a pristine and elegant studio setting. Do NOT include or describe any text, lettering, or overlays on the image itself. The prompt description must contain exactly zero text overlay instructions. Keep it strictly visual.` : style === 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe an epic, high-end cinematic Hollywood scene. The "visualPrompt" field MUST start exactly with: "foto cinematográfica estilo hollywood, ângulo inclinado de dutch angle dramático, iluminação de estúdio estilosa com alto contraste, cores premium com tonalidades teal e orange e sombras profundas, composição dinâmica e elegante, " followed by a storytelling scene description that matches the core narrative.` : ''}`;
 };
 
 // --- Image Generation ---
@@ -62,7 +75,8 @@ export const buildCreativeImagePrompt = (
   style?: string,
   composition?: string,
   brandKit?: any,
-  lang: Language = 'en'
+  lang: Language = 'en',
+  hasBaseImages: boolean = false
 ): string => {
   let styleRules = "";
 
@@ -71,7 +85,7 @@ export const buildCreativeImagePrompt = (
     High-Converting Instagram Image Ad
     ROLE
     Create a static Instagram ad that instantly stops scrolling, triggers emotion and communicates a clear, strong value proposition.
-    The design must follow the visual style of the reference image (colors, fonts, shapes, background, composition and mood).
+    ${hasBaseImages ? 'The design must follow the visual style of the reference image (colors, fonts, shapes, background, composition and mood).' : ''}
 
     OBJECTIVE
     The ad must:
@@ -82,22 +96,22 @@ export const buildCreativeImagePrompt = (
 
     STRUCTURE
     Headline: Primary scroll stopper. Must carry most of the conversion weight. Clear, concise, bold, emotion or outcome focused, curiosity or desire driven.
-    Subtitle: Supports the headline by explaining how the benefit is achieved. Short, credible and directly connected to the headline.
     Visual Context: Must reinforce the promise through product display, transformation moment, lifestyle outcome, usage demonstration or before/after effect.
     Call to Action: Clear, natural and visually noticeable. Encourages immediate action.
+    CRITICAL CONSTRAINT: Do NOT include any secondary subheadlines, secondary subtitles, or extra supporting text blocks on the visual image itself. Only show the primary main Headline and the CTA to ensure maximum aesthetic purity and direct response power.
 
     COPY RULES
-    Focus on outcomes and transformation. Use short, punchy and clear messaging. Combine emotional trigger with logical credibility. Avoid generic marketing language.
+    Focus on outcomes and transformation. Use short, punchy and clear messaging. Combine emotional trigger with logical credibility. Avoid generic marketing language. Do NOT write or place a subheadline.
 
     TEXT QUALITY
     All text must be fully legible, error-free, and use correct language. Text must be optimized for mobile readability and maintain strong contrast.
     CRITICAL: ALL GENERATED TEXT INSIDE THE IMAGE MUST BE IN ${getLangName(lang).toUpperCase()}.
 
     VISUAL RULES
-    Replicate the reference visual style. Maintain brand consistency and clean hierarchy. Ensure balanced layout, strong contrast and Instagram feed optimization.
+    ${hasBaseImages ? 'Replicate the reference visual style. Maintain brand consistency and clean hierarchy. Ensure balanced layout, strong contrast and Instagram feed optimization.' : 'Maintain brand consistency and clean hierarchy. Ensure balanced layout, strong contrast and Instagram feed optimization.'}
 
     OUTPUT
-    Generate a cohesive, emotionally persuasive, high-converting Instagram ad with a scroll-stopping headline, supporting subtitle and perfectly legible text aligned with the reference style.
+    Generate a cohesive, emotionally persuasive, high-converting Instagram ad with a single scroll-stopping headline, NO subheadline, and perfectly legible text ${hasBaseImages ? 'aligned with the reference style' : ''}.
     `;
   } else if (style === 'Stop-the-Scroll') {
     styleRules = `
@@ -164,6 +178,46 @@ export const buildCreativeImagePrompt = (
     News broadcast aesthetic, breaking news lower third graphic style, 'LIVE' or 'URGENT' visual indicators, high contrast, bold typography, journalistic photography style.
     Goal: Create an immediate sense of urgency and importance that stops the scroll.
     `;
+  } else if (style === 'YouTube-Thumbnail') {
+    styleRules = `
+    YouTube Thumbnail Rules:
+    highly expressive face (shock, awe, confident smirk, or intense stare), dynamic and exaggerated pose, bold lighting, punchy extreme contrast, MASSIVE focus entirely on the subject. CRITICAL FOR BACKGROUND: Use ultra-simple, vibrant, solid or gradient flat backgrounds (like solid Mr Beast style blue, yellow, or red) with ZERO clutter. Huge negative space for text. Viral youtube thumbnail style. Add a thick, high-contrast stroke outline (white or vibrant color) around the main person/subject to cut them out perfectly. CRITICAL FOR TEXT: Incorporate exactly ONE very short headline (1 to 3 words max). The text MUST have extreme 3D effects, massive bold fonts, embossed pop effects, thick outlines, and heavy drop shadows to make it pop aggressively off the background.
+    Goal: Create a Mr Beast style high-click-through-rate visual that triggers intense curiosity and urgency. The subject must be huge and pop aggressively against a very simple, solid/gradient impactful background with highly readable, prominent clickbait 3D 1-3 word text.
+    `;
+  } else if (style === 'Highlight Method') {
+    styleRules = `
+    Highlight Method Rules:
+    Focus on a specific feature, benefit, or word. Use visual highlighters (like a neon marker effect), circles, or arrows to draw immediate attention to the most important part of the image or text.
+    High contrast, clean background to make the highlighted element pop.
+    Goal: Direct the viewer's eye instantly to the core value proposition or key feature.
+    `;
+  } else if (style === 'UGC/Raw') {
+    styleRules = `
+    UGC / Raw Aesthetic Rules:
+    visualPrompt: O estilo de imagem DEVE ser: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual".
+    No professional studio lighting, 3D renderings, stock photos, clean-cut synthetic graphics or commercial setup.
+    It must look real, authentic, casual and natural, as if taken directly by an everyday user on a smartphone.
+    `;
+  } else if (style === 'Product-First') {
+    styleRules = `
+    Product-First Creative Rules:
+    Goal: Attention grabbing Professional Realistic product presentation focusing 100% on the physical product
+    • STYLE: a Scroll Stopper Realistic studio photography with raw unedited look.
+    • LIGHTING: Professional studio lighting, cinematic, clean gradients, soft highlights.
+    • CAMERA: Captured on a Canon EOS R50 with an 85mm lens, shallow depth of field, sharp detail on the product itself.
+    • COMPOSITION: Clean background with zero noise, minimal modern setting.
+    • NO TEXT OVERLAYS: There must be absolutely no text, typography, letters, words, or overlays in the image prompt or scene. Focus strictly on any visual/realistic details of the physical product. Do not place any text.
+    `;
+  } else if (style === 'Storytelling') {
+    styleRules = `
+    Storytelling Creative Rules:
+    Goal: Create an epic, premium cinematic scene with extreme mood and high aesthetic quality.
+    • STYLE: Exquisite Hollywood movie still aesthetic with movie LUT. Stylish, premium, sophisticated.
+    • COMPOSITION & CAMERA WORK: Exaggerated dramatics Dutch angle (tilted camera level), dynamic and non-traditional composition that breaks rules of balance to create high tension, cinematic wide lens perspective.
+    • LIGHTING: Dramatic high-contrast studio lighting, backlighting, moody shadows, rim light.
+    • COLOR GRADING: Stylish premium color tones LUT, deep rich black levels.
+    • THEME: Artistic narrative representation that tells a powerful story in a single stylish shot.
+    `;
   } else {
     // Default / General fallback
     styleRules = `
@@ -173,16 +227,28 @@ export const buildCreativeImagePrompt = (
     `;
   }
 
+  const rawUgcOverride = (style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling') ? `
+    CRITICAL IMAGE STYLE OVERRIDE (INSTAGRAM MANDATORY STYLE):
+    • OVERRIDE ESTHETIC: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual".
+    • The scene must look completely real, raw, candid, authentic, and amateur as if taken on an everyday smartphone camera (iPhone).
+    • The background MUST have minimal details, a simple setting, and very low visual noise / clutter.
+    • Avoid all signs of: professional studio setups, artificial lighting, sterile stock setups, clean 3D renderings, flawless commercial design setups, or pristine synthetic visuals.
+  ` : "";
+
   return `
+    ${rawUgcOverride}
     ${styleRules}
 
     SPECIFIC CONTEXT FOR THIS GENERATION:
     VISUAL DESCRIPTION: ${prompt}
     CAMERA ANGLE: ${composition || "Medium Shot"}.
-    FOUNDATION ASSET(S): Use the provided product image(s) as the absolute base and hero of the composition. You may be provided with multiple reference images; use them to understand the product from different angles or contexts.
+    ${hasBaseImages ? `FOUNDATION ASSET(S): Use the provided product image(s) as the absolute base and hero of the composition. You may be provided with multiple reference images; use them to understand the product from different angles or contexts.
     CRITICAL RULE: The product from the image reference MUST be the primary focus and foundation shot. 
-    CONSTRAINT: DO NOT PLACE reference images on the back of computers, smartphones, etc.
+    CONSTRAINT: DO NOT PLACE reference images on the back of computers, smartphones, etc.` : 'FOUNDATION ASSET(S): No reference images provided. Generate a high-quality visual based strictly on the description.'}
     ${brandKit ? `Mood/Tone: ${brandKit.tone}.` : ''}
+    
+    LANGUAGE RULE:
+    CRITICAL: IF ANY TEXT IS GENERATED INSIDE THE IMAGE, IT MUST BE IN ${getLangName(lang).toUpperCase()}.
     `;
 };
 
@@ -198,7 +264,7 @@ export const buildSearchAdsPrompt = (
   return `Generate high-performance RSAs for product (Excluding Strategy):\n${sanitizeContext(productContext)}.\nMarket: ${location}.${directionContext}
             STRICT REQUIREMENT: Answer strictly in ${getLangName(lang)}.
             REQUISITOS OBRIGATÓRIOS:
-            1. Identifica INTENÇÕES DE PESQUISA. DEVES GERAR OBRIGATORIAMENTE UMA CATEGORIA DE INTENT "GLOBAL", que seja mais pragmática, otimizada para CTR máximo e com keyword research altamente preciso e focado em conversão. Podes incluir outras intenções (Price, Brand, Comparison, Urgent).
+            1. Identifica INTENÇÕES DE PESQUISA. DEVES GERAR OBRIGATORIAMENTE UMA CATEGORIA DE INTENT "GLOBAL", que seja mais pragmática, otimizada para CTR máximo e com keyword research altamente preciso e focado em conversão. Inclui outras intenções (Price, Brand, Comparison, Urgent).
             2. Para cada intenção, gera EXATAMENTE 4 anúncios RSAs distintos.
             3. Títulos (Headlines): Máximo 30 caracteres.
             4. Descrições (Descriptions): Máximo 90 caracteres.
@@ -265,6 +331,7 @@ export const buildStoryboardPrompt = (
             3. O On-Screen Text deve ser curto e impactante.
             4. CINEMATIC VARIETY (MANDATÓRIO): Cada cena deve tel um enquadramento diferente.
             5. O "imagePrompt" deve ser extremamente descritivo para uma IA geradora.
+            6. Forneça uma sugestão de "viralMusicTrack" (música viral em alta) que se encaixe perfeitamente no vídeo.
             STRICT REQUIREMENT: Respond exactly in ${getLangName(lang)}. 
             Use local nuances for ${location}.`;
 };
@@ -427,3 +494,44 @@ export const buildPhoneScriptPrompt = (
             4. Soft Question (Conversation Starter): Open-ended, easy to answer, designed to understand not pitch.
             5. Exit Line (Low Pressure): Easy out, removes tension, preserves trust.`;
 };
+
+// --- Software Recommendations ---
+
+export const buildSoftwareRecommendationsPrompt = (
+  productContext: string,
+  campaignContext: string,
+  location: string,
+  lang: Language,
+  customDirection?: string
+): string => {
+  return `Generate exactly 3 recommended web tools, software platforms, mobile applications, or Google Chrome extensions specifically curated for the end-user/final target customer of this product. These should provide extreme value to the end-users, helping them achieve their goals, simplify their workflows, or solve their core pain points in relation to this business.
+            
+            PRODUCT CONTEXT:
+            ${sanitizeContext(productContext)}
+            
+            CAMPAIGN CONTEXT:
+            ${sanitizeContext(campaignContext)}
+            
+            CUSTOM DIRECTION/PREFERENCES: ${customDirection || 'Focus on useful, practical digital tools, mobile apps, or browser extensions that make the end-user\'s life significantly easier.'}
+            LOCATION: ${location}
+            
+            OUTPUT:
+            Return exactly 3 tools/platforms/extensions.
+            Output strictly in ${getLangName(lang)}.
+            
+            CRITICAL: This is NOT a growth hack or marketing outreach bot clone for outbound prospecting. Instead, suggest highly practical digital utilities, software, or tools that the end-user (your client\'s customer) can use to get maximum value. 
+            
+            For each recommended tool, you MUST provide:
+            1. name: Name of the software/extension/tool (e.g. Notion, Canva, Loom, Trello, ChatGPT, Miro, or specialized niche apps fitting the product\'s audience)
+            2. category: The category (e.g. Productivity, Financial Tracker, Content Design, Communication, Deep Work)
+            3. overview: Explain what this tool is and how it helps the customer achieve their Jobs to be done in their day-to-day life/workflow.
+            4. objective: Clear objective of why they should use this specific digital tool.
+            5. ultimateOutcome: What constitutes a spectacular outcome of using this tool successfully (e.g. "A beautifully organized content calendar updated in under 10 minutes a week").
+            6. why: Why this tool is a perfect fit for this specific audience or problem.
+            7. aiAgent: Specify the primary digital utility, main feature, or integrated AI assistant they should use within that tool (e.g. "ChatGPT Copywriting Assistant", "Notion AI Content Organizer", "Loom Video Recorder").
+            8. subAgents: Recommended companion tools or browser extensions (name, role, and a list of skills) to maximize their experience with the primary tool.
+            9. initialPrompt: Practical setup instructions, custom templates, or copy-paste prompts (minimum 2 paragraphs) that the user can copy into that tool or an AI platform to get started immediately.
+            10. tasks: A list of 4-6 specific, actionable steps/tasks they can follow to config and run this tool.
+            `;
+};
+

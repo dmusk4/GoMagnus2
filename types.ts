@@ -100,6 +100,7 @@ export interface CreativeSettings {
   storyboardDirection?: string;
   storyboardActiveStyle?: string;
   storyboardIgnoreContext?: boolean;
+  softwareDirection?: string;
 }
 
 export interface PLGActionBlock {
@@ -137,6 +138,7 @@ export interface Product {
   launchBlueprint?: LaunchBlueprint;
   industryNews?: IndustryNews[];
   linkedinPosts?: LinkedInPost[];
+  softwareRecommendations?: SoftwareRecommendation[];
   lastUpdated: number;
   lpBuilderData?: LandingPageBuilderData;
   designDirectorData?: DesignDirectorData;
@@ -144,6 +146,12 @@ export interface Product {
   offerFocus?: string;
   planFocus?: string;
   buyerFocus?: string;
+  chatHistory?: ChatMessage[];
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
 }
 
 export interface LaunchBlueprint {
@@ -200,6 +208,12 @@ export interface BigIdea {
 }
 
 export interface UniqueOffer {
+  paretoFocus?: {
+    the20Percent: string;
+    the80PercentOutcome: string;
+    innovationStrategy: string;
+    focusAction: string;
+  };
   headline: string; 
   corePromise: string; 
   timeframe: string; 
@@ -484,7 +498,7 @@ export interface LandingPageCopy {
 
 export interface Creative {
   id: string;
-  style: 'Direct-Response' | 'Breaking News' | 'SMS Notification' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Product-Hero' | 'Stop-the-Scroll' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'YouTube-Thumbnail' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle';
+  style: 'Direct-Response' | 'YouTube-Thumbnail' | 'Breaking News' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle' | 'Product-First';
   hook: string;
   headline: string;
   subheadline: string;
@@ -533,6 +547,7 @@ export interface Storyboard {
   id: string;
   title: string;
   narrativeSummary: string;
+  viralMusicTrack?: string;
   scenes: Scene[];
   retentionChecklist?: {
     hookUnder2s: boolean;
@@ -573,6 +588,21 @@ export interface CampaignPlan {
     jobTitles: string[];
   };
   b2bTriggers?: B2BTrigger[];
+  growthHackAutomation?: Array<{
+    title?: string;
+    overview: string;
+    objective: string;
+    ultimateOutcome: string;
+    why: string;
+    aiAgent: string;
+    subAgents?: Array<{
+      name: string;
+      role: string;
+      skills: string[];
+    }>;
+    initialPrompt: string;
+    tasks: string[];
+  }>;
 }
 
 export interface SalesPage {
@@ -585,3 +615,23 @@ export interface SalesPage {
 }
 
 export type SalesPageAesthetic = string;
+
+export interface SoftwareRecommendation {
+  id?: string;
+  name: string;
+  category: string;
+  url?: string;
+  overview: string;
+  objective: string;
+  ultimateOutcome: string;
+  why: string;
+  aiAgent: string;
+  subAgents?: Array<{
+    name: string;
+    role: string;
+    skills: string[];
+  }>;
+  initialPrompt: string;
+  tasks: string[];
+}
+

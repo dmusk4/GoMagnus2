@@ -112,7 +112,7 @@ export const EmailMarketingStudio: React.FC<EmailMarketingStudioProps> = ({
         <button 
           onClick={handleRefreshCampaign} 
           disabled={isEmailLoading} 
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[42px] shrink-0 ${isEmailLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
+          className={`flex items-center justify-center gap-2 px-8 py-3 w-full xl:w-auto rounded-xl font-bold transition-all shadow-lg whitespace-nowrap shrink-0 ${isEmailLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
         >
           {isEmailLoading ? <Loader2 className="animate-spin" size={18} /> : (product.emailCampaign ? <RefreshCw size={18} /> : <Send size={18} />)}
           {product.emailCampaign ? (isEmailLoading ? t.common.analyzing : t.creativesStep.refreshEmail) : (isEmailLoading ? t.common.building : t.creativesStep.buildEmail)}

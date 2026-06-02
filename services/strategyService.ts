@@ -36,6 +36,17 @@ export const generateUniqueOffer = async (productContext: string, buyerContext: 
     const schema = {
         type: Type.OBJECT,
         properties: {
+            paretoFocus: {
+                 type: Type.OBJECT,
+                 properties: {
+                     the20Percent: { type: Type.STRING },
+                     the80PercentOutcome: { type: Type.STRING },
+                     innovationStrategy: { type: Type.STRING },
+                     focusAction: { type: Type.STRING }
+                 },
+                 required: ["the20Percent", "the80PercentOutcome", "innovationStrategy", "focusAction"],
+                 description: "Pareto Principle (80/20 rule) applied to the product strategy."
+            },
             headline: { type: Type.STRING },
             corePromise: { type: Type.STRING },
             timeframe: { type: Type.STRING },
@@ -51,16 +62,21 @@ export const generateUniqueOffer = async (productContext: string, buyerContext: 
             scarcity: { type: Type.STRING },
             priceAnchor: { type: Type.STRING }
         },
-        required: ["headline", "corePromise", "timeframe", "bonuses", "riskReversal", "scarcity", "priceAnchor"]
+        required: ["paretoFocus", "headline", "corePromise", "timeframe", "bonuses", "riskReversal", "scarcity", "priceAnchor"]
     };
     try {
         const response = await ai.models.generateContent({
             model: getModel(mode),
-            contents: `Create a Unique Offer for: ${sanitizeContext(productContext)}. Location: ${location}. Big Idea: ${sanitizeContext(bigIdeaContext)}. Buyer: ${sanitizeContext(buyerContext)}.\n\nSTRICT REQUIREMENT: Use official currency of ${location}. Answer strictly in ${getLangName(lang)}.`,
+            contents: `Create a Unique Offer for: ${sanitizeContext(productContext)}. Location: ${location}. Big Idea: ${sanitizeContext(bigIdeaContext)}. Buyer: ${sanitizeContext(buyerContext)}.
+
+STRICT REQUIREMENTS:
+1. Use official currency of ${location}.
+2. Answer strictly in ${getLangName(lang)}.
+3. PARETO 80/20 RULE: At the very beginning of the offer generation, analyze the product context and apply the Pareto Principle (80/20 rule). Identify the 20% of focus/effort/features that will generate 80% of the maximum possible outcome. Tell the marketer exactly where to focus and innovate for maximum leverage. Focus is key.`,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema,
-                systemInstruction: `You are a senior direct-response strategist. Your goal is to create offers that feel stupid to say no to. Adapt values and currencies. Respond only in ${getLangName(lang)}.`
+                systemInstruction: `You are a senior direct-response strategist. Your goal is to create offers that feel stupid to say no to, and direct the marketer's focus using the 80/20 rule. Adapt values and currencies. Respond only in ${getLangName(lang)}.`
             }
         });
         return extractJSON(response.text);
@@ -177,9 +193,39 @@ export const generateCampaignPlan = async (fullContext: string, location: string
                     },
                     required: ["name", "date", "type", "description"]
                 }
+            },
+            growthHackAutomation: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING, description: "Short title (1-3 words) for the pill menu" },
+                        overview: { type: Type.STRING, description: "Overview of how this helps the user's jobs to be done" },
+                        objective: { type: Type.STRING },
+                        ultimateOutcome: { type: Type.STRING, description: "The specific 'Ultimate Outcome' or definition of success for this automation (e.g. '100 qualified leads enriched and pushed to CRM without manual intervention')" },
+                        why: { type: Type.STRING },
+                        aiAgent: { type: Type.STRING, description: "Suggests 'Claude Code', 'Cursor/Codex', or 'Antigravity' depending on the task" },
+                        subAgents: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    role: { type: Type.STRING },
+                                    skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                },
+                                required: ["name", "role", "skills"]
+                            },
+                            description: "Recommended sub-agents (including Orchestrator Agent) and their skills."
+                        },
+                        initialPrompt: { type: Type.STRING, description: "A highly elaborate, extensive, and comprehensive master prompt to feed the AI agent. It MUST read like a full project brief. It MUST clearly describe what needs to be built, what it is for, context of the business, the ultimate goal, step-by-step instructions, and provide enough constraints for the agentic system to understand exactly what to do." },
+                        tasks: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific steps/tasks for the agent to execute" }
+                    },
+                    required: ["title", "overview", "objective", "ultimateOutcome", "why", "aiAgent", "subAgents", "initialPrompt", "tasks"]
+                }
             }
         },
-        required: ["direction", "goal", "coreMessage", "marketNuance", "viralInitiative", "channelSetup", "launchSteps", "quickWins", "firstSignals", "nextMove", "creativeRecommendations", "b2bSuggestions", "keywords", "plgStrategy"]
+        required: ["direction", "goal", "coreMessage", "marketNuance", "viralInitiative", "channelSetup", "launchSteps", "quickWins", "firstSignals", "nextMove", "creativeRecommendations", "b2bSuggestions", "keywords", "plgStrategy", "growthHackAutomation"]
     };
     try {
         const response = await ai.models.generateContent({
@@ -217,11 +263,159 @@ export const generateCampaignPlan = async (fullContext: string, location: string
                - Output actions that feel like advice from an experienced growth operator who has actually shipped products — not a textbook.
                - Assign realistic Impact Score (1-10) and Effort Score (1-10) for data purposes.
             
+            9. GROWTH HACK AUTOMATION:
+               - Suggest **at least 3 different** specific campaigns of growth hack automation that can be initiated relating to this project to accelerate and automate it. Each should have a distinct purpose (e.g., Lead generation, Data enrichment, Cold outreach, Content scaling, etc.).
+               - For each, provide an 'overview' explaining how this automation directly facilitates exactly what the user needs to achieve (their 'Jobs to be done') and how it makes their work significantly easier.
+               - Describe the 'objective' and 'why' it is useful. Define the 'ultimateOutcome' clearly: what exactly constitutes a 100% successful and "amazing" delivery for the client.
+               - Focus on new projects to be built with 'Claude Code', 'Cursor/Codex', or 'Antigravity'. Define the main 'aiAgent'.
+               - IMPORTANT: Under 'subAgents', you MUST define an 'Orchestrator Agent' to manage workflow, as well as specialized sub-agents with their specific 'skills' needed to make the project a success.
+               - Provide the exact 'initialPrompt' to kickstart the project. The prompt MUST be a MASSIVE, EXTREMELY highly elaborate, extensive, and comprehensive master prompt. It is going to be fed directly into an agentic system, so it must leave no room for ambiguity.
+                 The prompt MUST be several paragraphs long and include:
+                 1) System Persona: establish a clear, expert role for the agent.
+                 2) Business Context: explain the product, the market, and why this is being built.
+                 3) What is to be built: a crystal-clear, exhaustive description of the automation, feature or tool.
+                 4) ULTIMATE OUTCOME/GOAL: explicitly state the expected final result and success criteria at the very beginning.
+                 5) Guardrails: robust constraints to prevent hallucination, scope creep, or redundant work.
+                 6) Instructions: explicitly tell the AI agent to: a) analyze the request and create a structured plan before coding, b) execute 'step-by-step', and c) at the end, clearly describe the final output it generated.
+                 7) Next Steps: instruct the agent to guide the user towards the fastest "time to value" (happy path) avoiding unnecessary friction (like connecting excessive APIs until the core works).
+                 Make this prompt rich in detail, contextual awareness, and directive clarity.
+            
             Output strictly in ${getLangName(lang)}.`,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema,
                 systemInstruction: `You are an experienced senior growth strategist. Goal: clear, practical, LOCALIZED plan. Strictly use ${getLangName(lang)}.`
+            }
+        });
+        return extractJSON(response.text);
+    } catch (e) { throw e; }
+}
+
+export const generateMoreGrowthHacks = async (fullContext: string, existingHacks: any[], language: Language, mode: GenerationMode): Promise<any[]> => {
+    const ai = getAI();
+    const schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Short title (1-3 words) for the pill menu" },
+                overview: { type: Type.STRING, description: "Overview of how this helps the user's jobs to be done" },
+                objective: { type: Type.STRING },
+                ultimateOutcome: { type: Type.STRING, description: "The specific 'Ultimate Outcome' or definition of success for this automation (e.g. '100 qualified leads enriched and pushed to CRM without manual intervention')" },
+                why: { type: Type.STRING },
+                aiAgent: { type: Type.STRING, description: "Suggests 'Claude Code', 'Cursor/Codex', or 'Antigravity' depending on the task" },
+                subAgents: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            name: { type: Type.STRING },
+                            role: { type: Type.STRING },
+                            skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+                        },
+                        required: ["name", "role", "skills"]
+                    },
+                    description: "Recommended sub-agents (including Orchestrator Agent) and their skills."
+                },
+                initialPrompt: { type: Type.STRING, description: "A high-level initial prompt to feed the AI agent expressing intent without overly technical constraints" },
+                tasks: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific steps/tasks for the agent to execute" }
+            },
+            required: ["title", "overview", "objective", "ultimateOutcome", "why", "aiAgent", "subAgents", "initialPrompt", "tasks"]
+        }
+    };
+    
+    const existingTitles = existingHacks.map(h => h.title || h.objective).join(", ");
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: `You are a Chief Strategy Officer who has launched 20+ products.
+            Generate strictly new growth hack automation campaign ideas.
+            
+            CONTEXT:
+            ${sanitizeContext(fullContext)}
+            
+            EXISTING HACKS TO AVOID REPEATING:
+            ${existingTitles}
+
+            INSTRUCTIONS:
+            - Suggest **at least 3 different** specific campaigns of growth hack automation that can be initiated relating to this project to accelerate and automate it. Each should have a distinct purpose (e.g., Lead generation, Data enrichment, Cold outreach, Content scaling, etc.) and MUST be conceptually different from the existing hacks listed above.
+            - For each, provide an 'overview' explaining how this automation directly facilitates exactly what the user needs to achieve (their 'Jobs to be done') and how it makes their work significantly easier.
+            - Describe the 'objective' and 'why' it is useful. Define the 'ultimateOutcome' clearly: what exactly constitutes a 100% successful and "amazing" delivery for the client.
+            - Focus on new projects to be built with 'Claude Code', 'Cursor/Codex', or 'Antigravity'. Define the main 'aiAgent'.
+            - IMPORTANT: Under 'subAgents', you MUST define an 'Orchestrator Agent' to manage workflow, as well as specialized sub-agents with their specific 'skills' needed to make the project a success.
+            - Provide the exact 'initialPrompt' to kickstart the project. The prompt should be highly thorough and comprehensive, establishing a clear system persona, setting robust guardrails, and explaining the exact context, desired outcome, and mentioning the sub-agents and their required skills. It MUST explicitly state the 'ULTIMATE OUTCOME' expected at the very beginning of the prompt to ensure the agentic automation understands the final goal. It should indicate the high-level goal and intention without constraining the agent with overly technical details. It MUST explicitly instruct the AI agent to: 1) analyze the request and create a structured plan before coding, 2) execute 'step-by-step', and 3) at the end, clearly and unambiguously describe the final output it generated. It should also instruct the agent to always guide the user on the next steps to reach the early "time to value" (happy path) as quickly as possible, avoiding unnecessary friction like connecting excessive APIs. Also provide a list of specific 'tasks' to guide the execution, which must include delegation to the sub-agents.
+            
+            Output strictly in ${getLangName(language)}.`,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: schema,
+                systemInstruction: `You are an experienced senior growth strategist. Goal: clear, practical, LOCALIZED plan. Strictly use ${getLangName(language)}.`
+            }
+        });
+        return extractJSON(response.text);
+    } catch (e) { throw e; }
+}
+
+export const generateSingleGrowthHack = async (
+    fullContext: string, 
+    hackToReplace: any, 
+    language: Language, 
+    mode: GenerationMode
+): Promise<any> => {
+    const ai = getAI();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            title: { type: Type.STRING, description: "Short title (1-3 words) for the pill menu" },
+            overview: { type: Type.STRING, description: "Overview of how this helps the user's jobs to be done" },
+            objective: { type: Type.STRING },
+            ultimateOutcome: { type: Type.STRING, description: "The specific 'Ultimate Outcome' or definition of success for this automation (e.g. '100 qualified leads enriched and pushed to CRM without manual intervention')" },
+            why: { type: Type.STRING },
+            aiAgent: { type: Type.STRING, description: "Suggests 'Claude Code', 'Cursor/Codex', or 'Antigravity' depending on the task" },
+            subAgents: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        role: { type: Type.STRING },
+                        skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ["name", "role", "skills"]
+                }
+            },
+            initialPrompt: { type: Type.STRING, description: "A high-level initial prompt to feed the AI agent expressing intent without overly technical constraints" },
+            tasks: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific steps/tasks for the agent to execute" }
+        },
+        required: ["title", "overview", "objective", "ultimateOutcome", "why", "aiAgent", "subAgents", "initialPrompt", "tasks"]
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: `You are a Chief Strategy Officer who has launched 20+ products.
+            Generate a single brand-new or heavily revamped/improved growth hack automation campaign to REPLACE the following existing campaign.
+            
+            PRODUCT CONTEXT:
+            ${sanitizeContext(fullContext)}
+            
+            CAMPAIGN TO REPLACE:
+            - Current Title: ${hackToReplace?.title}
+            - Current Objective: ${hackToReplace?.objective}
+            - Current Overview: ${hackToReplace?.overview}
+            
+            INSTRUCTIONS:
+            - Suggest a highly competent, creative alternative growth hack automation campaign.
+            - Ensure it has a distinct setup, with a clear ultimateOutcome, main aiAgent and detailed subAgents.
+            - The initialPrompt should be extremely robust and comprehensive. It MUST explicitly state the 'ULTIMATE OUTCOME' at the very beginning of the prompt.
+            - Provide 4-6 specific tasks to execute.
+            
+            Output strictly in ${getLangName(language)}.`,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: schema,
+                systemInstruction: `You are an experienced senior growth strategist. Goal: clear, practical, LOCALIZED plan. Strictly use ${getLangName(language)}.`
             }
         });
         return extractJSON(response.text);

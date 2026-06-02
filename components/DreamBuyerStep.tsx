@@ -101,7 +101,7 @@ export const DreamBuyerStep: React.FC<DreamBuyerStepProps> = ({ product, languag
 
   return (
     <div className="animate-slide-up pb-12 w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="text-4xl font-display font-bold text-gray-900">
             {isTextLoading ? (buyer?.name ? `${t.dreamBuyerStep.meeting} ${buyer.name}...` : t.common.analyzing) : `${t.dreamBuyerStep.meeting} ${buyer?.name || "Target Client"}`}
@@ -127,7 +127,7 @@ export const DreamBuyerStep: React.FC<DreamBuyerStepProps> = ({ product, languag
           <label className="block text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
             <Compass size={14} className="text-indigo-500" /> {t.dreamBuyerStep.pivotLabel || "Strategic Direction (Optional)"}
           </label>
-          <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
               <input 
                   type="text" 
                   value={strategicFocus}
@@ -138,7 +138,7 @@ export const DreamBuyerStep: React.FC<DreamBuyerStepProps> = ({ product, languag
               <button 
                   onClick={onGenerate}
                   disabled={isTextLoading}
-                  className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-100 whitespace-nowrap"
+                  className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 whitespace-nowrap w-full md:w-auto shrink-0"
               >
                   {isTextLoading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                   {isTextLoading ? t.dreamBuyerStep.pivoting : t.dreamBuyerStep.anotherAngle}

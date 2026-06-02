@@ -136,7 +136,7 @@ export const findB2BLeads = async (industries: string[], location: string, title
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: `Scrape and identify REAL key decision makers.
             Target Industries: ${industries.join(', ')}.
             Target Geographic Scope: ${location}. (Search for specific districts, cities, or regions within this location if specified).

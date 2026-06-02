@@ -20,6 +20,7 @@ import { CampaignPlanStep } from './components/CampaignPlanStep';
 import { CreativesStep } from './components/CreativesStep';
 import { SalesPageStep } from './components/SalesPageStep';
 import { LaunchBlueprintStep } from './components/LaunchBlueprintStep';
+import { ExpertChat } from './components/ExpertChat';
 import { COUNTRIES } from './components/Common';
 import { getTranslation } from './translations';
 
@@ -41,6 +42,7 @@ import {
   generateSearchAds,
   generateStoryboard,
   generateCampaignPlan,
+  generateMoreGrowthHacks,
   generateEmailCampaign,
   generateLaunchBlueprint,
   fetchIndustryNewsStream,
@@ -69,11 +71,59 @@ const initialProduct: Product = {
 };
 
 function App() {
-  const [products, setProducts] = useState<Product[]>([initialProduct]);
-  const [activeProductId, setActiveProductId] = useState<string>(initialProduct.id);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('market_hero_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load products from localStorage:", e);
+    }
+    return [initialProduct];
+  });
+
+  const [activeProductId, setActiveProductId] = useState<string>(() => {
+    try {
+      const savedProd = localStorage.getItem('market_hero_products');
+      const savedId = localStorage.getItem('market_hero_active_product_id');
+      if (savedProd) {
+        const parsed = JSON.parse(savedProd);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (savedId && parsed.some(p => p.id === savedId)) {
+            return savedId;
+          }
+          return parsed[0].id;
+        }
+      }
+    } catch (e) {}
+    return initialProduct.id;
+  });
+
   const [activeStep, setActiveStep] = useState<StrategyStep>('product');
-  const [language, setLanguage] = useState<Language>('pt'); // Defaulting to PT as requested
-  const [generationMode, setGenerationMode] = useState<GenerationMode>('Fast');
+  const [language, setLanguage] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('market_hero_language');
+      if (saved && (saved === 'en' || saved === 'pt' || saved === 'es')) {
+        return saved as Language;
+      }
+    } catch (e) {}
+    return 'pt'; // Defaulting to PT as requested
+  });
+
+  const [generationMode, setGenerationMode] = useState<GenerationMode>(() => {
+    try {
+      const saved = localStorage.getItem('market_hero_generation_mode');
+      if (saved && (saved === 'Fast' || saved === 'Quality')) {
+        return saved as GenerationMode;
+      }
+    } catch (e) {}
+    return 'Fast';
+  });
+
   const [analyzingUrl, setAnalyzingUrl] = useState(false);
   const [analyzingBrand, setAnalyzingBrand] = useState(false); // New state for brand analysis loading
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -118,6 +168,33 @@ function App() {
     };
     checkKey();
   }, []);
+
+  // Sync to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('market_hero_products', JSON.stringify(products));
+    } catch (e) {
+      console.error("Failed to save products to localStorage:", e);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('market_hero_active_product_id', activeProductId);
+    } catch (e) {}
+  }, [activeProductId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('market_hero_language', language);
+    } catch (e) {}
+  }, [language]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('market_hero_generation_mode', generationMode);
+    } catch (e) {}
+  }, [generationMode]);
 
   const handleSelectKey = async () => {
     if ((window as any).aistudio) {
@@ -250,7 +327,11 @@ function App() {
           const candidateImage = metaResult.image?.url || metaResult.logo?.url || metaResult.screenshot?.url;
           if (candidateImage) {
               const base64Image = await imageUrlToBase64(candidateImage);
-              if (base64Image) { updates.images = [base64Image]; }
+              if (base64Image) { 
+                  // If product already has images, prepend the new one unless it's already there (though we can't easily check base64 equality, we'll just prepend)
+                  const existingImages = activeProduct.images || [];
+                  updates.images = [base64Image, ...existingImages]; 
+              }
           }
       }
       if (geminiResult) {
@@ -515,6 +596,33 @@ function App() {
         const fullContext = `${focusContext}Product: ${p.name}. Description: ${p.description}. Audience: ${p.decisionMaker}. Big Idea: ${p.bigIdea?.tagline}. Offer: ${p.offer?.headline}`;
         const result = await generateCampaignPlan(fullContext, p.location, p.type || "Other", language, generationMode);
         if (result) updateProduct({ campaignPlan: result }, productId);
+    } catch (err: any) {
+      if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
+      console.error(err);
+    } finally { removeTask(taskKey); }
+  };
+
+  const handleGenerateMoreGrowthHacks = async (productId: string, focus?: string) => {
+    const p = productsRef.current.find(prod => prod.id === productId);
+    if (!p || !p.campaignPlan) return;
+    const taskKey = `growth-hacks-gen-${productId}`;
+    addTask(taskKey);
+    try {
+        const focusContext = focus ? `\n\nCRITICAL STRATEGIC DIRECTION: ${focus}\n\n` : "";
+        const fullContext = `${focusContext}Product: ${p.name}. Description: ${p.description}. Audience: ${p.decisionMaker}. Big Idea: ${p.bigIdea?.tagline}. Offer: ${p.offer?.headline}`;
+        
+        let existingHacks = p.campaignPlan.growthHackAutomation || [];
+        if (!Array.isArray(existingHacks)) existingHacks = [existingHacks];
+        
+        const result = await generateMoreGrowthHacks(fullContext, existingHacks, language, generationMode);
+        if (result && Array.isArray(result) && result.length > 0) {
+            updateProduct({ 
+                campaignPlan: {
+                    ...p.campaignPlan,
+                    growthHackAutomation: [...result, ...existingHacks]
+                }
+            }, productId);
+        }
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
@@ -787,9 +895,10 @@ function App() {
     try {
         const sanitizedPrompt = (prompt || "Professional product visualization").replace(/["']/g, "").substring(0, 450);
         
+        // Pass "4:5" aspect ratio (Meta Ads standard vertical/feed format)
         // Pass brandKit to ensure we generate on-brand visuals even if baseImage is missing
         // Pass language explicitly for text generation inside images
-        const resultUrl = await generateCreativeImage(sanitizedPrompt, baseImage, undefined, composition, p?.brandKit, style, language);
+        const resultUrl = await generateCreativeImage(sanitizedPrompt, baseImage, "4:5", composition, p?.brandKit, style, language);
         
         if (resultUrl) {
             updateProduct(prev => ({ 
@@ -1194,7 +1303,7 @@ function App() {
       />
 
       {lightboxImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setLightboxImage(null)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setLightboxImage(null)}>
           <button className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors bg-white/10 rounded-full p-2" onClick={() => setLightboxImage(null)}><X size={32} /></button>
           <img src={lightboxImage} alt="Full preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}/>
         </div>
@@ -1271,12 +1380,17 @@ function App() {
                       product={activeProduct} 
                       language={language} 
                       loading={taskQueue.has(`plan-gen-${activeProduct.id}`)} 
+                      loadingGrowthHacks={taskQueue.has(`growth-hacks-gen-${activeProduct.id}`)}
                       onGenerate={(focus) => {
                         updateProduct({ planFocus: focus });
                         handleGenerateCampaignPlanTask(activeProduct.id, focus);
                       }} 
+                      onGenerateMoreGrowthHacks={(focus) => {
+                        handleGenerateMoreGrowthHacks(activeProduct.id, focus);
+                      }}
                       onClear={() => updateProduct({ campaignPlan: undefined })} 
                       onUpdateFocus={(focus) => updateProduct({ planFocus: focus })}
+                      onUpdateProduct={(updates) => updateProduct(updates, activeProduct.id)}
                     />;
                     case 'offer': return <PowerOfferStep 
                       product={activeProduct} 
@@ -1325,6 +1439,7 @@ function App() {
                           if(storyboardId) handleRefreshSceneTask(activeProduct.id, storyboardId, sceneNumber);
                       }}
                       onUpdateProduct={(updates) => updateProduct(updates)}
+                      setLightboxImage={setLightboxImage}
                     />;
                     case 'sales_page': return <SalesPageStep 
                       product={activeProduct} 
@@ -1371,10 +1486,14 @@ function App() {
         {/* Desktop Next Button */}
         {showFloatingNextButton && (
           <div className="hidden lg:flex absolute bottom-10 right-10 flex-col items-end z-20">
-            <button onClick={handleNextStep} className="px-8 py-4 rounded-full shadow-2xl transition-all flex items-center space-x-3 font-display font-bold text-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95">
-              <span>{t.common.nextStep}</span><ArrowRight size={20} />
+            <button onClick={handleNextStep} className="w-16 h-16 rounded-full shadow-2xl transition-all flex items-center justify-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95">
+              <ArrowRight size={28} />
             </button>
           </div>
+        )}
+
+        {activeProduct && activeProduct.name && activeProduct.description && activeStep !== 'product' && (
+          <ExpertChat product={activeProduct} language={language} activeStep={activeStep} onUpdateProduct={(updates) => updateProduct(updates, activeProduct.id)} />
         )}
       </div>
     </div>

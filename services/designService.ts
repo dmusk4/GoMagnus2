@@ -213,7 +213,7 @@ export const analyzeDesignReferences = async (imageB64s: string[]): Promise<Bran
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
             contents: {
                 parts: [
                     ...validParts,
@@ -394,7 +394,7 @@ export const generateVibecodingPrompt = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
             contents: `Generate the Ultimate Vibecoding Prompt for this project.\n\nCONTEXT:\n${context}`,
             config: {
                 systemInstruction: systemInstruction,
@@ -519,7 +519,7 @@ export const generateElementorCode = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Using Pro for complex code structure generation
+            model: 'gemini-3.1-pro-preview', // Using Pro for complex code structure generation
             contents: `Generate the full Elementor Template JSON now. Ensure ALL ${Object.keys(copyData).length} sections are present and populate them with the EXACT text and STYLING provided in the context.\n\nCONTEXT:\n${context}`,
             config: {
                 responseMimeType: "application/json",
@@ -588,7 +588,7 @@ export const generateElementorSiteSettings = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
             contents: `Generate Elementor Site Settings JSON.\n\nCONTEXT:\n${context}`,
             config: {
                 responseMimeType: "application/json",

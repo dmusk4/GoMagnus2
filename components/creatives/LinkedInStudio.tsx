@@ -195,7 +195,7 @@ export const LinkedInStudio: React.FC<LinkedInStudioProps> = ({
               <button
                 onClick={() => onGenerateLinkedInPost(product.industryNews?.find(n => n.id === selectedNewsId) || null, activeLinkedInStyle, customLinkedInDirection)}
                 disabled={isLinkedInLoading}
-                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[42px] shrink-0 ${isLinkedInLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
+                className={`flex justify-center items-center gap-2 px-8 py-3 w-full xl:w-auto rounded-xl font-bold transition-all shadow-lg shrink-0 ${isLinkedInLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
               >
                 {isLinkedInLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
                 {selectedNewsId ? "Generate from News" : t.creativesStep.generatePost}

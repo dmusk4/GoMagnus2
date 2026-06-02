@@ -1,19 +1,20 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-/* Added Plus to imports */
+/* Added Plus and Layers to imports */
 import { 
-    Layout, MousePointer, Clapperboard, Check, Mail, Linkedin, Plus, Slash, Phone
+    Layout, MousePointer, Clapperboard, Check, Mail, Linkedin, Plus, Slash, Phone, Layers
 } from 'lucide-react';
-import { Product, Creative, SearchAdGroup, SearchAd, Storyboard, Scene, Language, EmailStyle, LinkedInPost, PhoneCampaign, CreativeSettings } from '../types';
+import { Product, Creative, SearchAdGroup, SearchAd, Storyboard, Scene, Language, EmailStyle, LinkedInPost, PhoneCampaign, CreativeSettings, SoftwareRecommendation } from '../types';
 import { getTranslation } from '../translations';
-import { generatePhoneScripts } from '../services/geminiService';
+import { generatePhoneScripts, generateSoftwareRecommendations } from '../services/geminiService';
 
 // Import sub-modules
 import { MetaAdsStudio } from './creatives/MetaAdsStudio';
 import { GoogleAdsStudio } from './creatives/GoogleAdsStudio';
 import { LinkedInStudio } from './creatives/LinkedInStudio';
 import { EmailMarketingStudio } from './creatives/EmailMarketingStudio';
-import { StoryboardStudio } from './creatives/StoryboardStudio';
 import { PhoneCallStudio } from './creatives/PhoneCallStudio';
+import { StoryboardStudio } from './creatives/StoryboardStudio';
+import { SoftwareStudio } from './creatives/SoftwareStudio';
 
 interface CreativesStepProps {
   product: Product;
@@ -40,6 +41,7 @@ interface CreativesStepProps {
   onRefreshScene?: (sceneNumber: number, storyboardId?: string) => void;
   onUpdateProduct?: (updates: Partial<Product>) => void;
   showValidation?: boolean;
+  setLightboxImage?: (url: string | null) => void;
 }
 
 const COMPOSITIONS = [
@@ -67,21 +69,19 @@ const BASE_EMAIL_ANGLES = [
 const EMAIL_STYLES: EmailStyle[] = ["Human-Written", "HTML Newsletter"];
 
 const BASE_SOCIAL_STYLES: Creative['style'][] = [
+    'Product-First',
     'Direct-Response', 
+    'Minimalist',
+    'Storytelling',
+    'UGC/Raw',
+    'Short-Human',
+    'YouTube-Thumbnail',
     'Breaking News',
-    'SMS Notification',
     'Highlight Method',
     'Secret Info',
     'Social Gossip',
-    'Short-Human', 
-    'Product-Hero', 
-    'Stop-the-Scroll', 
     'Pop-Culture-Twist', 
-    'Storytelling', 
-    'UGC/Raw', 
     'Humor', 
-    'YouTube-Thumbnail',
-    'Minimalist', 
     'Versus'
 ];
 
@@ -99,8 +99,8 @@ const LINKEDIN_STYLES = [
 ];
 
 export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
-  const { product, language, taskQueue, onFileUpload, onUpdate, onUpdateSearchAds, onUpdateStoryboard, onUpdateProduct } = props;
-  const [activeTab, setActiveTab] = useState<'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone'>('social');
+  const { product, language, taskQueue, onFileUpload, onUpdate, onUpdateSearchAds, onUpdateStoryboard, onUpdateProduct, setLightboxImage } = props;
+  const [activeTab, setActiveTab] = useState<'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone' | 'software'>('social');
   
   // Safe Access to Product Settings
   const creativeSettings = product.creativeSettings || {};
@@ -168,6 +168,9 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const customSearchDirection = creativeSettings.searchDirection || "";
   const setCustomSearchDirection = (val: string) => updateSettings({ searchDirection: val });
 
+  const customSoftwareDirection = creativeSettings.softwareDirection || "";
+  const setCustomSoftwareDirection = (val: string) => updateSettings({ softwareDirection: val });
+
   // Visual Controls (Meta Ads)
   const metaShotType = creativeSettings.metaShotType || "Medium Shot";
   const setMetaShotType = (val: string) => updateSettings({ metaShotType: val });
@@ -200,6 +203,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const [linkedInCopyStatus, setLinkedInCopyStatus] = useState<string | null>(null);
   
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
+  const [isSoftwareLoading, setIsSoftwareLoading] = useState(false);
 
   const internalFileRef = useRef<HTMLInputElement>(null);
   const [targetIdForUpload, setTargetIdForUpload] = useState<{ type: 'social' | 'scene', id: string | number, storyboardId?: string } | null>(null);
@@ -460,6 +464,14 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                     <Clapperboard size={18} /> TikTok/Reels
                     {(product.storyboards && product.storyboards.length > 0) && <Check size={16} className="text-emerald-500 shrink-0 stroke-[3px]" />}
                 </button>
+                <button 
+                    ref={el => { tabRefs.current['software'] = el; }}
+                    onClick={() => setActiveTab('software')} 
+                    className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'software' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                    <Layers size={18} /> Software
+                    {(product.softwareRecommendations && product.softwareRecommendations.length > 0) && <Check size={16} className="text-emerald-500 shrink-0 stroke-[3px]" />}
+                </button>
             </div>
         </div>
 
@@ -484,6 +496,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             excludeBuyerContext={excludeBuyerContext}
             setExcludeBuyerContext={setExcludeBuyerContext}
             onGenerateImage={(id, prompt, base, comp) => props.onGenerateImage(id, prompt, base, comp, activeStyle)}
+            setLightboxImage={setLightboxImage}
           />
         )}
 
@@ -596,6 +609,45 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             }}
             storyboardIgnoreContext={storyboardIgnoreContext}
             setStoryboardIgnoreContext={setStoryboardIgnoreContext}
+          />
+        )}
+
+        {activeTab === 'software' && (
+          <SoftwareStudio 
+            product={product}
+            language={language}
+            isSoftwareLoading={isSoftwareLoading}
+            onUpdate={(updatedData) => {
+              if (onUpdateProduct) {
+                onUpdateProduct(updatedData);
+              }
+            }}
+            customSoftwareDirection={customSoftwareDirection}
+            setCustomSoftwareDirection={setCustomSoftwareDirection}
+            onGenerateSoftware={async (dir) => {
+              setIsSoftwareLoading(true);
+              try {
+                const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
+                const campaignContext = product.campaignPlan
+                   ? `Direction: ${product.campaignPlan.direction}. Core Message: ${product.campaignPlan.coreMessage}. Goal: ${product.campaignPlan.goal}`
+                   : "";
+                const result = await generateSoftwareRecommendations(productContext, campaignContext, product.location, language, 'Quality', dir);
+                if (result && result.tools) {
+                  const existing = product.softwareRecommendations || [];
+                  const newTools = result.tools.map((t, idx) => ({ 
+                    ...t, 
+                    id: `tool-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`
+                  }));
+                  if (onUpdateProduct) {
+                    onUpdateProduct({ softwareRecommendations: [...newTools, ...existing] });
+                  }
+                }
+              } catch (e) {
+                console.error("Error generating software recommendations:", e);
+              } finally {
+                setIsSoftwareLoading(false);
+              }
+            }}
           />
         )}
     </div>

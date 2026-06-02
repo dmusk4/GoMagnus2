@@ -11,6 +11,8 @@ import {
 import { Product, Language } from '../types';
 import { getTranslation } from '../translations';
 
+import { jsPDF } from "jspdf";
+
 interface LaunchBlueprintStepProps {
   product: Product;
   language: Language;
@@ -22,19 +24,588 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
   const blueprint = product.launchBlueprint;
   const t = getTranslation(language);
 
-  const handlePrint = () => {
-    // 1. Temporarily change title for cleaner filename save
-    const originalTitle = document.title;
-    const safeName = product.name.replace(/[^a-zA-Z0-9-_]/g, '_');
-    document.title = `${safeName}_Strategy_Blueprint`;
+  const handleExportPDF = () => {
+    if (!blueprint) return;
     
-    // 2. Trigger Print Dialog
-    window.print();
+    const doc = new jsPDF();
+    let y = 20;
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxLineWidth = pageWidth - margin * 2;
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    // 3. Restore title after delay (allow dialog to grab the new title)
-    setTimeout(() => {
-        document.title = originalTitle;
-    }, 500);
+    const getLabel = (en: string, pt: string, es: string) => {
+        if (language === 'pt') return pt;
+        if (language === 'es') return es;
+        return en;
+    };
+
+    const checkPageBreak = (height: number) => {
+        if (y + height > pageHeight - margin) {
+            doc.addPage();
+            y = margin + 10;
+        }
+    };
+
+    const addTitle = (text: string, size = 16, isBold = true, spaceAfter = 8, color = [0,0,0]) => {
+        checkPageBreak(size * 0.7);
+        doc.setFontSize(size);
+        doc.setTextColor(color[0], color[1], color[2]);
+        doc.setFont("helvetica", isBold ? "bold" : "normal");
+        const lines = doc.splitTextToSize(String(text), maxLineWidth);
+        const textHeight = lines.length * (size * 0.35); // Approx height factor
+        checkPageBreak(textHeight);
+        doc.text(lines, margin, y);
+        y += textHeight + spaceAfter;
+        doc.setTextColor(0, 0, 0);
+    };
+
+    const addText = (text: string | undefined, size = 11, spaceAfter = 6, isItalic = false) => {
+        if (!text) return;
+        doc.setFontSize(size);
+        doc.setFont("helvetica", isItalic ? "italic" : "normal");
+        const lines = doc.splitTextToSize(String(text), maxLineWidth);
+        const textHeight = lines.length * (size * 0.35); // Approx height factor
+        checkPageBreak(textHeight);
+        doc.text(lines, margin, y);
+        y += textHeight + spaceAfter;
+    };
+
+    const addSectionHeader = (title: string, stepNum: string) => {
+        checkPageBreak(45);
+        y += 10;
+        addTitle(`${stepNum} ${title.toUpperCase()}`, 16, true, 8, [30, 41, 59]);
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.8);
+        doc.line(margin, y - 5, pageWidth - margin, y - 5);
+        y += 5;
+    };
+
+    const tryAddImage = (imgUrl: string | undefined, w = 40, h = 40, centered = false) => {
+        if (!imgUrl) return false;
+        if (imgUrl.startsWith('data:image')) {
+            checkPageBreak(h + 10);
+            try {
+                let format = 'JPEG';
+                if (imgUrl.includes('image/png')) format = 'PNG';
+                else if (imgUrl.includes('image/webp')) format = 'WEBP';
+                const xPos = centered ? (pageWidth - w) / 2 : margin;
+                doc.addImage(imgUrl, format, xPos, y, w, h);
+                y += h + 8;
+                return true;
+            } catch (e) {
+                console.error("Failed adding image", e);
+            }
+        }
+        return false;
+    };
+
+    // --- Dossier Cover Header ---
+    doc.setFillColor(30, 41, 59); // slate-900
+    doc.rect(0, 0, pageWidth, 55, "F");
+    y = 22;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${product.name.toUpperCase()}`, margin, y);
+    y += 8;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(200, 200, 255);
+    doc.text(`STRATEGY BLUEPRINT DOSSIER`, margin, y);
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(160, 160, 160);
+    const confidentialLabel = t.blueprintStep.confidential || "CONFIDENTIAL STRATEGIC RECORD";
+    doc.text(`${confidentialLabel} | ${t.blueprintStep.generatedOn || "Generated on"}: ${new Date().toLocaleDateString()}`, margin, y);
+    
+    y = 70;
+    doc.setTextColor(0, 0, 0);
+
+    // --- Overview Context tags ---
+    let contextStr = [];
+    if (product.location) contextStr.push(`Location: ${product.location}`);
+    if (product.audienceType) contextStr.push(`Audience: ${product.audienceType}`);
+    if (product.goal) contextStr.push(`Goal: ${product.goal}`);
+    if (contextStr.length > 0) {
+        addText(contextStr.join("   |   "), 10, 12, true);
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y - 5, pageWidth - margin, y - 5);
+        y += 5;
+    }
+
+    // ==========================================
+    // STEP 1: Overview / Executive Summary
+    // ==========================================
+    addSectionHeader(t.blueprintStep.execSummary || "Executive Perspective", "1.");
+    addText(blueprint.productSummary, 11, 10);
+
+    if (blueprint.currentState) {
+        addTitle(t.blueprintStep.currentState || "Current State Analysis", 12, true, 4);
+        addText(blueprint.currentState, 10, 8, true);
+    }
+    if (blueprint.priorityInitiatives && blueprint.priorityInitiatives.length > 0) {
+        addTitle(t.blueprintStep.priorityInitiatives || "Priority Initiatives", 12, true, 4);
+        blueprint.priorityInitiatives.forEach((init, i) => addText(`${i + 1}. ${init}`, 10, 4));
+        y += 4;
+    }
+    if (blueprint.resourceRequirements) {
+        addTitle(t.blueprintStep.resourceRequirements || "Resource Requirements", 12, true, 4);
+        addText(blueprint.resourceRequirements, 10, 8);
+    }
+    if (blueprint.decisionFramework) {
+        addTitle(t.blueprintStep.decisionFramework || "Decision Framework", 12, true, 4);
+        addText(blueprint.decisionFramework, 10, 8);
+    }
+    if (blueprint.oneHourBrief) {
+        addTitle(t.blueprintStep.oneHourBrief || "The One-Hour action brief", 12, true, 4);
+        addText(blueprint.oneHourBrief, 10, 8);
+    }
+
+    // ==========================================
+    // STEP 2: Dream Buyer ICP Profile
+    // ==========================================
+    addSectionHeader(t.blueprintStep.buyerInsights || "Dream Buyer Profile", "2.");
+    addText(blueprint.buyerSummary, 11, 10);
+
+    if (product.dreamBuyer) {
+        if (product.dreamBuyer.avatarUrl) {
+            tryAddImage(product.dreamBuyer.avatarUrl, 35, 35, false);
+        }
+        
+        addTitle(`${getLabel("Target Identity", "Identidade do Alvo", "Identidad del Objetivo")}: ${product.dreamBuyer.name} (${product.dreamBuyer.archetype})`, 12, true, 4);
+        addText(`Demographics: ${product.dreamBuyer.ageRange}, ${product.dreamBuyer.occupation} | Income: ${product.dreamBuyer.income || 'N/A'}`, 10, 8);
+        
+        addTitle(t.blueprintStep.burningPain || "Burning Pain Point", 10, true, 2);
+        addText(product.dreamBuyer.painPoint, 10, 6, true);
+        
+        addTitle(t.blueprintStep.deepestDesire || "Deepest Desire", 10, true, 2);
+        addText(product.dreamBuyer.desire, 10, 6, true);
+        
+        addTitle(t.blueprintStep.barrierObjection || "Main Barrier / Objection", 10, true, 2);
+        addText(product.dreamBuyer.objection, 10, 6, true);
+        
+        if (product.dreamBuyer.mediaConsumption) {
+             addTitle(t.dreamBuyerStep?.mediaConsumption || "Media Diet / Where they hang out", 10, true, 2);
+             addText(product.dreamBuyer.mediaConsumption, 10, 6);
+        }
+    }
+
+    // ==========================================
+    // STEP 3: Market Intelligence
+    // ==========================================
+    addSectionHeader(t.blueprintStep.marketLandscape || "Market Intelligence", "3.");
+    addText(blueprint.marketSummary, 11, 10);
+
+    if (product.marketIntel) {
+        if (product.marketIntel.workingNow && product.marketIntel.workingNow.length > 0) {
+            addTitle(t.marketIntelStep?.winningPatterns || "Winning Patterns (What's working right now)", 11, true, 4, [30, 110, 60]);
+            product.marketIntel.workingNow.forEach(item => addText(`• ${item}`, 10, 4));
+            y += 4;
+        }
+        if (product.marketIntel.saturated && product.marketIntel.saturated.length > 0) {
+            addTitle(t.marketIntelStep?.saturatedAngles || "Saturated Angles (What to avoid)", 11, true, 4, [150, 40, 40]);
+            product.marketIntel.saturated.forEach(item => addText(`• ${item}`, 10, 4));
+            y += 4;
+        }
+        if (product.marketIntel.opportunities && product.marketIntel.opportunities.length > 0) {
+            addTitle(t.marketIntelStep?.gapOpportunities || "Gap Opportunities", 11, true, 4, [60, 60, 150]);
+            product.marketIntel.opportunities.forEach(item => addText(`• ${item}`, 10, 4));
+            y += 6;
+        }
+        if (product.marketIntel.pricingSuggestions) {
+            addTitle(t.blueprintStep.yieldStrategy || "Proposed Pricing Strategy", 12, true, 4);
+            const pricing = product.marketIntel.pricingSuggestions;
+            
+            addTitle(`> ${t.blueprintStep.disruptivePricing || "Disruptive Pricing"}: ${pricing.sameForLess.price}`, 10, true, 2);
+            addText(pricing.sameForLess.logic, 10, 4);
+            if (pricing.sameForLess.valueAdd && pricing.sameForLess.valueAdd.length > 0) {
+                pricing.sameForLess.valueAdd.forEach(va => addText(`  + ${va}`, 9, 3));
+            }
+            
+            addTitle(`> ${t.blueprintStep.marketLeader || "Premium Market Leader"}: ${pricing.moreForSame.price}`, 10, true, 2);
+            addText(pricing.moreForSame.logic, 10, 4);
+            if (pricing.moreForSame.valueAdd && pricing.moreForSame.valueAdd.length > 0) {
+                pricing.moreForSame.valueAdd.forEach(va => addText(`  + ${va}`, 9, 3));
+            }
+
+            if (pricing.monetization) {
+                addTitle(`> ${getLabel("Monetization & Expansion Models", "Modelos de Monetização & Expansão", "Modelos de Monetización y Expansión")}`, 11, true, 3);
+                const mon = pricing.monetization;
+                if (mon.opportunities) {
+                    if (mon.opportunities.upsells && mon.opportunities.upsells.length > 0) {
+                        addTitle("  - Upsell Opportunities:", 9, true, 2);
+                        mon.opportunities.upsells.forEach(up => addText(`    * ${up}`, 9, 3));
+                    }
+                    if (mon.opportunities.crossSells && mon.opportunities.crossSells.length > 0) {
+                        addTitle("  - Cross-Sell Opportunities:", 9, true, 2);
+                        mon.opportunities.crossSells.forEach(cs => addText(`    * ${cs}`, 9, 3));
+                    }
+                    if (mon.opportunities.usageBased) {
+                        addTitle("  - Usage-Based Pricing Logic:", 9, true, 2);
+                        addText(`    ${mon.opportunities.usageBased}`, 9, 3);
+                    }
+                }
+                if (mon.discountStrategy) {
+                    addTitle("  - Discount Tactical Protocol:", 10, true, 2);
+                    addText(`    When: ${mon.discountStrategy.when} | Amount: ${mon.discountStrategy.amount} | Target Audience: ${mon.discountStrategy.audience}`, 9, 4);
+                }
+            }
+        }
+        
+        if (product.marketIntel.competitors && product.marketIntel.competitors.length > 0) {
+            addTitle(t.blueprintStep.competitiveRadar || "Active Competitor Radar", 12, true, 4);
+            product.marketIntel.competitors.forEach((comp, i) => {
+                addTitle(`${i+1}. ${comp.name} (${comp.pricePoint})`, 11, true, 2);
+                if (comp.url) addText(`Url: ${comp.url}`, 9, 3);
+                if (comp.rating) addText(`Rating: ${comp.rating} ★ (${comp.reviewCount || "N/A"} reviews)`, 9, 3);
+                
+                addText(`Strength: ${comp.strength || "N/A"}\nWeakness: ${comp.weakness || "N/A"}`, 10, 4);
+                
+                if (comp.strategicMoves && comp.strategicMoves.length > 0) {
+                    addTitle("  Strategic Moves & Threat Level:", 9, true, 2);
+                    comp.strategicMoves.forEach(mv => addText(`    • ${mv}`, 9, 3));
+                }
+                
+                if (comp.reviewInsights) {
+                    const ri = comp.reviewInsights;
+                    if (ri.whatTheyLove && ri.whatTheyLove.length > 0) {
+                        addTitle("    What users love:", 9, true, 2);
+                        ri.whatTheyLove.slice(0, 3).forEach(el => addText(`      + ${el}`, 9, 2));
+                    }
+                    if (ri.commonComplaints && ri.commonComplaints.length > 0) {
+                        addTitle("    Common complaints / gaps:", 9, true, 2);
+                        ri.commonComplaints.slice(0, 3).forEach(el => addText(`      - ${el}`, 9, 2));
+                    }
+                }
+                y += 3;
+            });
+        }
+
+        if (product.marketIntel.ownBrandInsights) {
+            const obi = product.marketIntel.ownBrandInsights;
+            addTitle(getLabel("Brand Reputation Audit", "Auditoria de Reputação da Marca", "Auditoría de Reputación de Marca"), 11, true, 4);
+            addText(`Sentiment Benchmark Score: ${obi.sentimentScore}/100`, 10, 4);
+            if (obi.positives && obi.positives.length > 0) {
+                addTitle("Verified Praises / Positives:", 9, true, 2);
+                obi.positives.forEach(pos => addText(`  + ${pos}`, 9, 3));
+            }
+            if (obi.negatives && obi.negatives.length > 0) {
+                addTitle("Verified Gaps / Negative Frictions:", 9, true, 2);
+                obi.negatives.forEach(neg => addText(`  - ${neg}`, 9, 3));
+            }
+            y += 4;
+        }
+
+        if (product.marketIntel.leanCanvas) {
+            const lc = product.marketIntel.leanCanvas;
+            addTitle("Lean Canvas Matrix", 12, true, 6, [30, 41, 59]);
+            addTitle("1. Problem Context", 10, true, 2); addText(lc.problem, 9, 4);
+            addTitle("2. Solution Proposed", 10, true, 2); addText(lc.solution, 9, 4);
+            addTitle("3. Unique Value Proposition", 10, true, 2); addText(lc.uniqueValueProp, 9, 4);
+            addTitle("4. Unfair Advantage", 10, true, 2); addText(lc.unfairAdvantage, 9, 4);
+            addTitle("5. Customer Segments", 10, true, 2); addText(lc.customerSegments, 9, 4);
+            addTitle("6. Delivery channels", 10, true, 2); addText(lc.channels, 9, 4);
+            addTitle("7. Key Metrics to Watch", 10, true, 2); addText(lc.keyMetrics, 9, 4);
+            addTitle("8. Cost Structure", 10, true, 2); addText(lc.costStructure, 9, 4);
+            addTitle("9. Revenue Streams", 10, true, 2); addText(lc.revenueStreams, 9, 6);
+        }
+    }
+
+    // ==========================================
+    // STEP 4: Campaign Action Plan / Launch Sequence
+    // ==========================================
+    addSectionHeader(t.blueprintStep.growthSequence || "Launch Action Plan", "4.");
+    addText(blueprint.planSummary, 11, 10);
+
+    if (product.campaignPlan) {
+        const cp = product.campaignPlan;
+        addTitle(getLabel("Strategic Directive", "Diretriz Estratégica", "Directiva Estratégica"), 12, true, 4);
+        addText(`Direction: ${cp.direction}`, 10, 4, true);
+        addText(`Goal: ${cp.goal}`, 10, 4);
+        addText(`Core Slogan / Hook: "${cp.coreMessage}"`, 11, 6, true);
+        if (cp.marketNuance) {
+            addTitle(getLabel("Geographical & Cultural Nuance", "Nuance Geográfica e Cultural", "Matiz Geográfico y Cultural"), 10, true, 2);
+            addText(cp.marketNuance, 10, 6);
+        }
+        
+        addTitle(getLabel("Operational Traffic Setup", "Configuração de Tráfego Operacional", "Configuración de Tráfico Operativo"), 11, true, 4);
+        addText(`Platform Hub: ${cp.channelSetup.platform}`, 10, 3);
+        addText(`Budget Recommendation: ${cp.channelSetup.budgetRange}`, 10, 3);
+        addText(`Test Duration: ${cp.channelSetup.testDuration}`, 10, 3);
+        addText(`Rationale: ${cp.channelSetup.whyThisPlatform}`, 10, 8);
+
+        addTitle(t.campaignPlanStep?.launchSteps || "Step-by-Step Launch Sequence", 12, true, 4);
+        cp.launchSteps.forEach((step, i) => addText(`${i + 1}. ${step}`, 10, 4));
+        y += 4;
+
+        if (cp.viralInitiative) {
+            addTitle(getLabel("Growth Catalyst (Viral Vector)", "Catalisador de Crescimento (Vetor Viral)", "Catalizador de Crecimiento (Vector Viral)"), 11, true, 2);
+            addText(`"${cp.viralInitiative}"`, 10, 6, true);
+        }
+
+        if (cp.quickWins) {
+            addTitle(getLabel("Tactical Quick Wins", "Vitórias Rápidas (Quick Wins)", "Victorias Rápidas (Quick Wins)"), 11, true, 4);
+            if (cp.quickWins.tactics && cp.quickWins.tactics.length > 0) {
+                addTitle("  Immediate Launch Tactics:", 9, true, 2);
+                cp.quickWins.tactics.forEach(tac => addText(`    • ${tac}`, 10, 3));
+            }
+            if (cp.quickWins.partnerships && cp.quickWins.partnerships.length > 0) {
+                addTitle("  Leverage Partners & Co-marketing:", 9, true, 2);
+                cp.quickWins.partnerships.forEach(part => addText(`    • ${part}`, 10, 3));
+            }
+            y += 4;
+        }
+
+        if (cp.firstSignals) {
+            addTitle(t.campaignPlanStep?.signals || "Early Warning Signals", 11, true, 4);
+            if (cp.firstSignals.goodSigns && cp.firstSignals.goodSigns.length > 0) {
+                addTitle(`  ${t.campaignPlanStep?.goodSigns || "Positive Signs"}:`, 9, true, 2, [30, 110, 60]);
+                cp.firstSignals.goodSigns.forEach(sig => addText(`    + ${sig}`, 10, 3));
+            }
+            if (cp.firstSignals.redFlags && cp.firstSignals.redFlags.length > 0) {
+                addTitle(`  ${t.campaignPlanStep?.redFlags || "Red Flags"}:`, 9, true, 2, [150, 40, 40]);
+                cp.firstSignals.redFlags.forEach(flag => addText(`    - ${flag}`, 10, 3));
+            }
+            y += 4;
+        }
+
+        if (cp.keywords && cp.keywords.length > 0) {
+            addTitle(getLabel("Validated Search Term Keywords", "Palavras-Chave de Intenção Validadas", "Palabras Clave de Intención Validadas"), 11, true, 4);
+            cp.keywords.forEach(kw => {
+                addText(`- ${kw.term}: Search Volume: ${kw.volume} | CPC Benchmark: ${kw.cpc} | Fit: ${kw.relevance}`, 10, 4);
+            });
+            y += 4;
+        }
+
+        if (cp.plgStrategy && cp.plgStrategy.length > 0) {
+            addTitle(getLabel("Product-Led Growth (PLG) Engine", "Motor de Lançamento Baseado em Canal (PLG)", "Motor de Lanzamiento Basado en Canal (PLG)"), 11, true, 4);
+            cp.plgStrategy.forEach(block => {
+                addTitle(`  Stage: ${block.stage}`, 10, true, 2);
+                addText(`  Goal: ${block.goal}`, 9, 3);
+                if (block.actions && block.actions.length > 0) {
+                    addText(`  Actions: ${block.actions.join(", ")}`, 9, 4);
+                }
+            });
+            y += 4;
+        }
+
+        if (cp.creativeRecommendations && cp.creativeRecommendations.length > 0) {
+            addTitle(getLabel("Suggested Creative Asset Deliverables", "Entregáveis Recomendados de Criativos", "Entregables Recomendados de Creativos"), 11, true, 4);
+            cp.creativeRecommendations.forEach(rec => {
+                addText(`  • ${rec.type} (Qty: ${rec.count}) - Prioridade: ${rec.priority} | Reason: ${rec.reason}`, 10, 4);
+            });
+            y += 4;
+        }
+
+        if (cp.b2bSuggestions) {
+            addTitle(getLabel("Enterprise B2B Segment Setup", "Configurações de Prospecção B2B Corporativa", "Configuración de Prospección B2B Corporativa"), 11, true, 4);
+            const b2b = cp.b2bSuggestions;
+            if (b2b.industries && b2b.industries.length > 0) {
+                addText(`Target Sectors: ${b2b.industries.join(", ")}`, 10, 3);
+            }
+            if (b2b.jobTitles && b2b.jobTitles.length > 0) {
+                addText(`Target Profiles: ${b2b.jobTitles.join(", ")}`, 10, 3);
+            }
+            if (b2b.seniorityLevels && b2b.seniorityLevels.length > 0) {
+                addText(`Target Seniority: ${b2b.seniorityLevels.join(", ")}`, 10, 4);
+            }
+            if (cp.b2bTriggers && cp.b2bTriggers.length > 0) {
+                addTitle("Target Conversion Hooks & B2B Triggers:", 10, true, 2);
+                cp.b2bTriggers.forEach(tri => {
+                    addText(`  * Trigger: ${tri.name} (Type: ${tri.type} | Date: ${tri.date})`, 9, 3);
+                    addText(`    Description: ${tri.description}`, 9, 4);
+                });
+            }
+            y += 4;
+        }
+
+        if (cp.growthHackAutomation && cp.growthHackAutomation.length > 0) {
+            addTitle(getLabel("Growth Marketing Automation Protocols", "Protocolos de Automação e Hacks de Crescimento", "Protocolos de Automatización y Hacks de Crecimiento"), 12, true, 6, [40, 40, 150]);
+            cp.growthHackAutomation.forEach(hack => {
+                addTitle(`> Protocol: ${hack.title}`, 11, true, 3);
+                addTitle("  Objective:", 9, true, 1);
+                addText(`  ${hack.objective}`, 9, 3);
+                
+                addTitle("  Overview Strategy:", 9, true, 1);
+                addText(`  ${hack.overview}`, 9, 3);
+                
+                addTitle("  Ultimate Outcome Expected:", 9, true, 1);
+                addText(`  ${hack.ultimateOutcome}`, 9, 3);
+                
+                addTitle("  Why this protocol works:", 9, true, 1);
+                addText(`  ${hack.why}`, 9, 3);
+                
+                addTitle("  Recommended Lead AI Orchestrator Agent:", 10, true, 2);
+                addText(`  ${hack.aiAgent}`, 9, 4);
+
+                if (hack.subAgents && hack.subAgents.length > 0) {
+                    addTitle("  Required Support Agents Stack:", 9, true, 2);
+                    hack.subAgents.forEach(sub => {
+                        addText(`    * Agent Name: ${sub.name} (Role: ${sub.role})`, 9, 2);
+                        addText(`      Required skills: ${sub.skills.join(", ")}`, 9, 4);
+                    });
+                }
+
+                if (hack.initialPrompt) {
+                    addTitle("  Kickstart Deployment Instructions & Setup AI Prompt (Master copy):", 9, true, 2);
+                    checkPageBreak(30);
+                    doc.setDrawColor(220, 220, 255);
+                    doc.setFillColor(245, 245, 255);
+                    const promptLines = doc.splitTextToSize(hack.initialPrompt, maxLineWidth - 10);
+                    const promptHeight = promptLines.length * 4;
+                    checkPageBreak(promptHeight + 6);
+                    doc.rect(margin, y, maxLineWidth, promptHeight + 4, "F");
+                    doc.setFontSize(8.5);
+                    doc.setFont("courier", "normal");
+                    doc.text(promptLines, margin + 5, y + 4);
+                    y += promptHeight + 10;
+                    doc.setFont("helvetica", "normal");
+                }
+
+                if (hack.tasks && hack.tasks.length > 0) {
+                    addTitle("  Deployment Milestones:", 9, true, 2);
+                    hack.tasks.forEach((t, index) => addText(`    [ ] ${index+1}. ${t}`, 9, 3));
+                }
+                
+                y += 6;
+            });
+        }
+
+        if (cp.nextMove) {
+            addTitle(getLabel("Critical First Execution Action Move", "Ação de Lançamento Crítica Imediata", "Acción de Lanzamiento Crítica Inmediata"), 11, true, 2);
+            addText(`Next Action: "${cp.nextMove}"`, 11, 8, true);
+        }
+    }
+
+    // ==========================================
+    // STEP 5: Offer Architecture
+    // ==========================================
+    addSectionHeader(t.blueprintStep.offerArchitecture || "Offer Architecture", "5.");
+    addText(blueprint.offerSummary, 11, 10);
+
+    if (product.offer) {
+        addTitle(t.offerStep?.corePromise || "Irresistible Slogan & Promise Headline", 12, true, 4);
+        addTitle(`"${product.offer.headline}"`, 14, false, 8, [150, 80, 20]);
+        
+        if (product.bigIdea) {
+            addTitle(getLabel("The Big Idea Anchor Hypothesis", "Slogan âncora e Fundamentação da Big Idea", "Slogan ancla y Fundamentación de la Big Idea"), 11, true, 4);
+            if (product.bigIdea.tagline) addText(`Hook Tagline: "${product.bigIdea.tagline}"`, 10, 4, true);
+            if (product.bigIdea.uniqueMechanism) {
+                addTitle("Unique Mechanism Explained:", 10, true, 2);
+                addText(product.bigIdea.uniqueMechanism, 10, 6);
+            }
+        }
+        
+        if (product.offer.riskReversal) {
+            addTitle(t.offerStep?.guaranteeTitle || "Pillared Value Success Guarantee / Risk Reversal", 11, true, 2);
+            addText(product.offer.riskReversal, 10, 6);
+        }
+        
+        if (product.offer.priceAnchor) {
+            addTitle(t.offerStep?.investmentLogic || "Optimized Price Frame & Price Anchor", 11, true, 2);
+            addText(product.offer.priceAnchor, 10, 6);
+        }
+
+        if (product.offer.bonuses && product.offer.bonuses.length > 0) {
+            addTitle(t.offerStep?.valueStack || "Irresistible Bonus Stack Value", 11, true, 4);
+            product.offer.bonuses.forEach((b, index) => {
+                addTitle(`  Bonus ${index+1}: ${b.title} (Valued: ${b.value})`, 10, true, 2);
+                if (b.description) {
+                    addText(`  Rationale / Obstacle resolved: ${b.description}`, 9, 4);
+                }
+            });
+            y += 4;
+        }
+    }
+
+    // ==========================================
+    // STEP 6: Creative Ecosystem
+    // ==========================================
+    addSectionHeader(t.blueprintStep.creativeDirection || "Creative Ecosystem", "6.");
+    addText(blueprint.creativeSummary, 11, 10);
+
+    if (product.creatives && product.creatives.length > 0) {
+        addTitle(getLabel("Engineered Visual Creatives Catalog", "Catálogo Criativo Visual Gerado", "Catálogo Creativo Visual Generado"), 12, true, 4);
+        product.creatives.forEach((c, idx) => {
+            addTitle(`${idx + 1}. Theme: ${c.style || "Visual Theme"} (Hook: "${c.hook || ""}")`, 11, true, 3);
+            addText(`Headline: "${c.headline || ""}"`, 10, 3);
+            addText(`Caption: "${c.caption || ""}"`, 10, 4, true);
+            if (c.visualPrompt) addText(`Creative Canvas Prompt: ${c.visualPrompt}`, 9, 3);
+            if (c.imageUrl) {
+                tryAddImage(c.imageUrl, 40, 40, false);
+            }
+            y += 6;
+        });
+    }
+
+    if (product.emailCampaign) {
+        addTitle(`CRM Nurture Flows: "${product.emailCampaign.category}"`, 12, true, 4);
+        product.emailCampaign.emails.forEach((e, idx) => {
+            addTitle(`  Email ${idx + 1} Slogan: "${e.subject}"`, 11, true, 3);
+            addText(e.body, 10, 6);
+        });
+        y += 4;
+    }
+    
+    if (product.storyboards && product.storyboards.length > 0) {
+        product.storyboards.forEach((sb, sIdx) => {
+            addTitle(`Primary Video Storyboard Architecture: "${sb.title}"`, 12, true, 4);
+            sb.scenes.forEach((s) => {
+                addTitle(`  Scene ${s.number} [Energy Level Pacing: ${s.energyTag}] [Timing Duration: ${s.timing}]`, 10, true, 2);
+                addText(`  Visual Frame Shot: ${s.shotDetails}`, 10, 3);
+                addText(`  Teleprompter Narration: "${s.voiceover}"`, 10, 3, true);
+                if (s.onScreenText) addText(`  On-Screen Overlay Label Text: ${s.onScreenText}`, 9, 4);
+            });
+            y += 4;
+        });
+    }
+
+    // ==========================================
+    // STEP 7: Visual Brand DNA
+    // ==========================================
+    const brandKit = product.designDirectorData?.brandKit || product.brandKit;
+    const designSettings = product.designDirectorData?.settings || product.lpBuilderData?.copy?.designRecommendation;
+    const colors = brandKit?.colors || (product.salesPage?.visualIdentity?.primaryColor ? [product.salesPage.visualIdentity.primaryColor, product.salesPage.visualIdentity.secondaryColor, product.salesPage.visualIdentity.backgroundColor] : []);
+    const typography = designSettings?.typography || (brandKit as any)?.fontHeadline || (brandKit as any)?.fontPairingRecommendation || "Sans-Serif Modern";
+
+    if (colors.length > 0 || typography) {
+        addSectionHeader(getLabel("Visual Brand DNA", "DNA Visual da Marca", "DNA Visual de la Marca"), "7.");
+        if (colors.length > 0) {
+            addTitle("Hex Swatch Color Palette Scheme:", 11, true, 2);
+            let colorStr = colors.join("   |   ");
+            addText(colorStr, 10, 6);
+        }
+        if (typography) {
+            addTitle("Typography Style Recommendations:", 11, true, 2);
+            addText(`${typography}  (${designSettings?.style || "Clean Corporate Minimalist"})`, 10, 6);
+        }
+    }
+
+    // ==========================================
+    // STEP 8: Final Strategic Verdict / Conclusão
+    // ==========================================
+    addSectionHeader(t.blueprintStep.bottomLine || "Strategic Bottom Line", "8.");
+    checkPageBreak(50);
+    doc.setFillColor(30, 41, 59); // Dark blue summary box highlight
+    doc.rect(margin, y, maxLineWidth, 35, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    const bottomLineLines = doc.splitTextToSize(`"${blueprint.bottomLine}"`, maxLineWidth - 10);
+    doc.text(bottomLineLines, margin + 5, y + 15);
+    y += 45;
+
+    // --- Footer page marker ---
+    y += 10;
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8.5);
+    addText("End of Blueprint Dossier - Engineered by MarketHero Engine", 8.5, 0);
+
+    const safeName = product.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+    doc.save(`${safeName}_Blueprint_Dossier.pdf`);
   };
 
   const handleExportJSON = () => {
@@ -281,7 +852,7 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
             <FileJson size={16} /> {t.common.downloadJson}
           </button>
           <button 
-            onClick={handlePrint}
+            onClick={handleExportPDF}
             className="px-8 py-3 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black shadow-xl flex items-center gap-2 transition-all active:scale-95"
           >
             <Printer size={16} /> {t.blueprintStep.exportPdf}

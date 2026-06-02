@@ -59,7 +59,7 @@ export const PhoneCallStudio: React.FC<PhoneCallStudioProps> = ({
         <button 
           onClick={() => onGeneratePhoneScripts(customPhoneDirection)} 
           disabled={isPhoneLoading} 
-          className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[42px] shrink-0 ${isPhoneLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
+          className={`flex justify-center items-center gap-2 px-8 py-3 w-full xl:w-auto rounded-xl font-bold transition-all shadow-lg shrink-0 ${isPhoneLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}
         >
           {isPhoneLoading ? <Loader2 className="animate-spin" size={18} /> : (scripts.length > 0 ? <RefreshCw size={18} /> : <Phone size={18} />)}
           {scripts.length > 0 ? (isPhoneLoading ? t.common.analyzing : t.creativesStep.refreshPhone) : (isPhoneLoading ? t.common.building : t.creativesStep.buildPhone)}

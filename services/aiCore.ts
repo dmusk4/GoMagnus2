@@ -9,7 +9,7 @@ import { Language, GenerationMode } from "../types";
 export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getModel = (mode: GenerationMode): string => {
-    return mode === 'Fast' ? 'gemini-3-flash-preview' : 'gemini-3-pro-preview';
+    return mode === 'Fast' ? 'gemini-3.5-flash' : 'gemini-3.1-pro-preview';
 };
 
 /**
@@ -269,7 +269,25 @@ const compressImage = async (file: Blob, maxDimension = 1024, quality = 0.8): Pr
 
 export const imageUrlToBase64 = async (url: string): Promise<string | null> => {
   try {
-    const response = await fetch(url);
+    let response;
+    try {
+        response = await fetch(url);
+    } catch (e) {
+        // Fallback to proxy if direct fetch fails (likely CORS)
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        response = await fetch(proxyUrl);
+    }
+    
+    if (!response.ok) {
+        // Fallback to proxy if direct fetch returned an error
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        response = await fetch(proxyUrl);
+        if (!response.ok) {
+            console.error("Failed to fetch image, status:", response.status);
+            return null;
+        }
+    }
+
     const blob = await response.blob();
     // Compress before converting to base64
     const compressedBlob = await compressImage(blob);
@@ -279,7 +297,10 @@ export const imageUrlToBase64 = async (url: string): Promise<string | null> => {
       reader.onerror = reject;
       reader.readAsDataURL(compressedBlob);
     });
-  } catch (e) { return null; }
+  } catch (e) {
+    console.error("Error fetching image from url:", url, e);
+    return null;
+  }
 };
 
 export const fileToBase64 = async (file: Blob): Promise<string> => {

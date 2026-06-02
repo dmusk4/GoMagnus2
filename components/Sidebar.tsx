@@ -112,35 +112,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
         )}
 
-        <div className={`p-4 border-b border-gray-100 flex items-center transition-all ${isCollapsed ? 'flex-col gap-4 py-6 justify-center' : 'justify-between py-6'}`}>
-            <div className={`flex items-center space-x-2 text-indigo-600 font-bold tracking-tight ${isCollapsed ? 'justify-center' : ''}`}>
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
-                    <span className="text-white text-sm font-display font-bold">M</span>
-                </div>
-                {(!isCollapsed || isMobileOpen) && (
-                    <span className="font-display text-xl whitespace-nowrap animate-fade-in flex items-center">
-                        <span className="font-light text-indigo-600">GO</span>
-                        <span className="font-bold text-gray-900">MAGNUS</span>
-                    </span>
-                )}
+        <div className={`border-b border-gray-100 flex items-center transition-all h-20 shrink-0 ${isCollapsed ? 'px-2 justify-center gap-1' : 'px-4 justify-between'}`}>
+            <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full space-x-2'}`}>
+                <img src={isCollapsed ? "/icon.png" : "/logo.png"} alt="Marketing DONE" className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-8 w-auto' : 'h-11 w-auto'}`} />
             </div>
             
-            {/* Desktop Collapse Toggle */}
             <button 
                 onClick={() => setIsCollapsed(!isCollapsed)}
-                className="text-gray-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-gray-50 hidden md:block"
+                className={`text-gray-400 hover:text-indigo-600 transition-colors rounded-lg hover:bg-gray-50 hidden md:flex shrink-0 ${isCollapsed ? 'p-1' : 'p-1.5'}`}
                 title={isCollapsed ? "Expand" : "Collapse"}
             >
-                {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={20} />}
             </button>
 
             {/* Mobile Close Button */}
-            <button 
-                onClick={closeMobileSidebar}
-                className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50 md:hidden"
-            >
-                <X size={20} />
-            </button>
+            {!isCollapsed && (
+                <button 
+                    onClick={closeMobileSidebar}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50 md:hidden shrink-0"
+                >
+                    <X size={20} />
+                </button>
+            )}
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">

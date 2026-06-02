@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { Clapperboard, Compass, Loader2, Star, Plus, ChevronLeft, ChevronRight, ImageIcon, RefreshCw, Download, Timer, MessageSquare, Video, Palette, Zap, Heart, Share2, Trash2, ToggleRight, ToggleLeft, Layers } from 'lucide-react';
+import { Clapperboard, Compass, Loader2, Star, Plus, ChevronLeft, ChevronRight, ImageIcon, RefreshCw, Download, Timer, MessageSquare, Video, Palette, Zap, Heart, Share2, Trash2, ToggleRight, ToggleLeft, Layers, Music } from 'lucide-react';
 import { Product, Storyboard, Language } from '../../types';
 import { getTranslation } from '../../translations';
 
@@ -58,9 +58,16 @@ const StoryboardViewer: React.FC<{
         <div className="mb-16 border-t border-gray-100 pt-8 first:border-0 first:pt-0 group/row">
             <div className="flex items-center justify-between mb-6 px-4">
                 <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-50 px-3 py-1 rounded-full mb-2 inline-block">
-                        Concept {total - index}
-                    </span>
+                    {storyboard.viralMusicTrack ? (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-600 bg-fuchsia-100 border border-fuchsia-200 px-3 py-1 rounded-full mb-2 inline-flex items-center gap-1.5 shadow-sm">
+                            <Music size={12} className="animate-pulse" />
+                            {storyboard.viralMusicTrack}
+                        </span>
+                    ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-50 px-3 py-1 rounded-full mb-2 inline-block">
+                            Concept {total - index}
+                        </span>
+                    )}
                     <h3 className="text-2xl font-bold text-gray-900">{storyboard.title}</h3>
                     <p className="text-sm text-gray-500 mt-1 max-w-2xl">{storyboard.narrativeSummary}</p>
                 </div>
@@ -84,14 +91,14 @@ const StoryboardViewer: React.FC<{
                 {/* Scroll Buttons Overlay */}
                 <button 
                     onClick={() => scroll('left')}
-                    className="absolute left-4 z-20 w-12 h-12 bg-white/90 backdrop-blur-md rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto"
+                    className="absolute left-4 z-50 w-12 h-12 bg-white/90 backdrop-blur-md rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto"
                 >
                     <ChevronLeft size={24} />
                 </button>
                 
                 <button 
                     onClick={() => scroll('right')}
-                    className="absolute right-4 z-20 w-12 h-12 bg-white/90 backdrop-blur-md rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto"
+                    className="absolute right-4 z-50 w-12 h-12 bg-white/90 backdrop-blur-md rounded-full shadow-xl border border-gray-100 flex items-center justify-center text-gray-700 hover:text-indigo-600 hover:scale-110 transition-all opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto"
                 >
                     <ChevronRight size={24} />
                 </button>
@@ -114,10 +121,7 @@ const StoryboardViewer: React.FC<{
                                                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover/frame:opacity-100 transition-all duration-300 z-[5]"></div>
                                             </>
                                         ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 p-12 text-center">
-                                                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-6 backdrop-blur">
-                                                    <ImageIcon size={24} className="text-white/40" />
-                                                </div>
+                                            <div className="absolute inset-x-0 top-[65%] flex flex-col items-center justify-center p-12 text-center z-20">
                                                 <button onClick={() => onGenerateSceneImage(scene.number, scene.imagePrompt, scene.selectedBaseImage, storyboard.id)} disabled={isImgLoading || isRefreshing} className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold shadow-xl hover:bg-indigo-500 hover:text-white transition-all flex items-center gap-2 disabled:opacity-20 disabled:cursor-not-allowed">
                                                     {isImgLoading ? t.common.building : t.creativesStep.craftVisual}
                                                 </button>
@@ -263,8 +267,8 @@ export const StoryboardStudio: React.FC<StoryboardStudioProps> = ({
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-300"
             />
           </div>
-          <div className="flex flex-col items-end gap-3 shrink-0">
-            <button onClick={() => onGenerateStoryboard(activeStoryboardStyle, customStoryboardDirection)} disabled={isStoryboardLoading} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[42px] shrink-0 ${isStoryboardLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
+          <div className="flex flex-col items-end gap-3 shrink-0 w-full lg:w-auto">
+            <button onClick={() => onGenerateStoryboard(activeStoryboardStyle, customStoryboardDirection)} disabled={isStoryboardLoading} className={`flex justify-center items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg w-full lg:w-auto shrink-0 ${isStoryboardLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
               {isStoryboardLoading ? <Loader2 className="animate-spin" size={18} /> : <Clapperboard size={18} />}
               {isStoryboardLoading ? t.common.analyzing : t.creativesStep.buildStoryboard}
             </button>

@@ -44,7 +44,7 @@ export const GoogleAdsStudio: React.FC<GoogleAdsStudioProps> = ({
             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-300"
           />
         </div>
-        <button onClick={() => onGenerateSearchAds(customSearchDirection)} disabled={isSearchLoading} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[42px] shrink-0 ${isSearchLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
+        <button onClick={() => onGenerateSearchAds(customSearchDirection)} disabled={isSearchLoading} className={`flex justify-center items-center gap-2 px-8 py-3 w-full xl:w-auto rounded-xl font-bold transition-all shadow-lg shrink-0 ${isSearchLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
             {isSearchLoading ? <Loader2 className="animate-spin" size={18} /> : (product.searchAds.length > 0 ? <Plus size={18} /> : <Search size={18} />)}
             {product.searchAds.length > 0 ? (isSearchLoading ? t.common.analyzing : t.creativesStep.refreshSearch) : (isSearchLoading ? t.common.building : t.creativesStep.buildSearch)}
         </button>

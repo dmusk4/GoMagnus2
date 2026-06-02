@@ -4,7 +4,7 @@ import {
     Target, Sparkles, Loader2, RefreshCw, Zap, TrendingUp, CheckCircle2, 
     AlertCircle, List, Layout, Clock, DollarSign, ArrowRight, Lightbulb, Globe, Compass, Share2, Trash2,
     Users, Search, X, Linkedin, Mail, ExternalLink, ShieldCheck, ChevronDown, Check,
-    Briefcase, MapPin, FileDown, Plus, Phone, Calendar, Flag, MousePointer2, UserPlus, CreditCard, Heart, Repeat, Rocket, Handshake
+    Briefcase, MapPin, FileDown, Plus, Phone, Calendar, Flag, MousePointer2, UserPlus, CreditCard, Heart, Repeat, Rocket, Handshake, Terminal, Bot, Copy, CheckCircle, HelpCircle
 } from 'lucide-react';
 import { Product, CampaignPlan, Language, Lead } from '../types';
 import { getTranslation } from '../translations';
@@ -15,11 +15,14 @@ interface CampaignPlanStepProps {
   product: Product;
   language: Language;
   loading: boolean;
+  loadingGrowthHacks?: boolean;
   onGenerate: (focus?: string) => void | Promise<void>;
+  onGenerateMoreGrowthHacks?: (focus?: string) => void | Promise<void>;
   onClear: () => void;
   showValidation?: boolean;
   validationTrigger?: number;
   onUpdateFocus?: (focus: string) => void;
+  onUpdateProduct?: (updates: Partial<Product>) => void;
 }
 
 const MultiSelectDropdown = ({ 
@@ -159,7 +162,7 @@ const MultiSelectDropdown = ({
 const N8N_WEBHOOK_URL = "https://n8n.srv1217103.hstgr.cloud/webhook-test/market-hero";
 
 export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({ 
-    product, language, loading, onGenerate, onClear, showValidation = false, validationTrigger = 0, onUpdateFocus
+    product, language, loading, loadingGrowthHacks = false, onGenerate, onGenerateMoreGrowthHacks, onClear, showValidation = false, validationTrigger = 0, onUpdateFocus, onUpdateProduct
 }) => {
   const plan = product.campaignPlan;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -176,6 +179,43 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [targetLocation, setTargetLocation] = useState<string>("");
   const [jobTitles, setJobTitles] = useState<string[]>([]);
+  const [growthHackFocus, setGrowthHackFocus] = useState<string>("");
+  const [activeAutomationIdx, setActiveAutomationIdx] = useState(0);
+  const [isRefreshingSingle, setIsRefreshingSingle] = useState(false);
+
+  const handleRefreshSingleAutomation = async (idxToReplace: number) => {
+    if (!onUpdateProduct || isRefreshingSingle) return;
+    setIsRefreshingSingle(true);
+    try {
+        const automations = Array.isArray(plan?.growthHackAutomation) ? plan.growthHackAutomation : [plan?.growthHackAutomation];
+        const targetHack = automations[idxToReplace];
+        if (!targetHack) return;
+
+        const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
+        const campaignContext = plan
+           ? `Direction: ${plan.direction}. Core Message: ${plan.coreMessage}. Goal: ${plan.goal}`
+           : "";
+        const fullContext = `${productContext}\n${campaignContext}`;
+        
+        const { generateSingleGrowthHack } = await import('../services/geminiService');
+        const updatedHack = await generateSingleGrowthHack(fullContext, targetHack, language, 'Quality');
+        
+        if (updatedHack) {
+            const copy = [...automations];
+            copy[idxToReplace] = updatedHack;
+            onUpdateProduct({
+                campaignPlan: {
+                    ...plan!,
+                    growthHackAutomation: copy
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Error refreshing single growth hack:", e);
+    } finally {
+        setIsRefreshingSingle(false);
+    }
+  };
 
   useEffect(() => {
     if (plan?.b2bSuggestions) {
@@ -310,14 +350,14 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
       return colors[idx % colors.length];
   };
 
-  const RefreshButton = ({ onClick }: { onClick: () => void }) => (
+  const RefreshButton = ({ onClick, isLoading = loading }: { onClick: () => void, isLoading?: boolean }) => (
     <button 
         onClick={onClick} 
-        disabled={loading}
+        disabled={isLoading}
         className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all disabled:opacity-50"
         title="Regenerate Plan"
     >
-        <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+        <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
     </button>
   );
 
@@ -329,13 +369,13 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
         
         <div className="mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-500/5">
              <label className="block text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-               <Target size={14} className="text-indigo-500" /> {t.campaignPlanStep.pivotLabel}
+               <Target size={14} className="text-indigo-500" /> {t.dreamBuyerStep.pivotLabel || "Strategic Direction (Optional)"}
              </label>
              <input 
                 type="text" 
                 value={strategicFocus}
                 onChange={(e) => onUpdateFocus?.(e.target.value)}
-                placeholder={t.campaignPlanStep.pivotPlaceholder}
+                placeholder={t.dreamBuyerStep.pivotPlaceholder || "Ex: Focus on affluent urban professionals or parents of twins..."}
                 className="w-full bg-slate-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
              />
         </div>
@@ -511,7 +551,7 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
       )}
 
       {/* Main Content */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div>
           <h2 className="text-4xl font-display font-bold text-gray-900">{t.campaignPlanStep.title}</h2>
           <p className="text-lg text-gray-500 mt-2">{t.campaignPlanStep.blueprintSubtitle}</p>
@@ -526,37 +566,25 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
             <Trash2 size={16} />
             <span className="text-xs font-bold hidden sm:inline">{t.common.clearData}</span>
           </button>
-          <button 
-            onClick={() => onGenerate(strategicFocus)} 
-            disabled={loading} 
-            className={`text-sm font-bold flex items-center transition-all px-6 py-3 rounded-xl border transition-all duration-300 ${
-              loading 
-                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
-                : 'text-indigo-600 bg-white border-indigo-100 hover:bg-indigo-50 hover:shadow-md'
-            }`}
-          >
-            {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <Zap size={14} className="mr-2 fill-indigo-600 text-indigo-600" />}
-            {loading ? t.common.analyzing : t.dreamBuyerStep.anotherAngle}
-          </button>
         </div>
       </div>
 
       <div className="mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-500/5">
           <label className="block text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-            <Compass size={14} className="text-indigo-500" /> {t.campaignPlanStep.pivotLabel}
+            <Compass size={14} className="text-indigo-500" /> {t.dreamBuyerStep.pivotLabel || "Strategic Direction (Optional)"}
           </label>
-          <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
               <input 
                   type="text" 
                   value={strategicFocus}
                   onChange={(e) => onUpdateFocus?.(e.target.value)}
-                  placeholder={t.campaignPlanStep.pivotPlaceholder}
+                  placeholder={t.dreamBuyerStep.pivotPlaceholder || "Ex: Focus on affluent urban professionals or parents of twins..."}
                   className="flex-1 bg-slate-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
               />
               <button 
                   onClick={() => onGenerate(strategicFocus)}
                   disabled={loading}
-                  className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-100"
+                  className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 w-full md:w-auto shrink-0"
               >
                   <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                   {t.common.refresh}
@@ -844,6 +872,215 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
                             </ul>
                         </div>
                     ))}
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Growth Hack Automation Panel */}
+      {plan?.growthHackAutomation && (
+        <div className="bg-white p-10 rounded-[2.5rem] border border-gray-200 shadow-xl relative group w-full mb-12">
+            <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                    <Terminal size={140} className="text-gray-900" />
+                </div>
+            </div>
+            
+            <div className="relative z-10">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-6">
+                    <div className="flex flex-col gap-1 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <span className="p-2 bg-gray-100 rounded-xl text-gray-700"><Terminal size={24} /></span>
+                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">{t.campaignPlanStep.growthHack.title}</h3>
+                        </div>
+                        <p className="text-sm text-gray-500 font-medium ml-14">{t.campaignPlanStep.growthHack.subtitle}</p>
+                    </div>
+                    
+                    <div className="flex items-end gap-3 w-full md:max-w-md">
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wider">{t.campaignPlanStep.growthHack.directionPlaceholder}</label>
+                            <div className="relative group/input w-full">
+                                <input 
+                                    type="text" 
+                                    value={growthHackFocus} 
+                                    onChange={(e) => setGrowthHackFocus(e.target.value)}
+                                    placeholder={t.campaignPlanStep.growthHack.directionPlaceholder}
+                                    className="pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-gray-400"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setActiveAutomationIdx(0);
+                                            (onGenerateMoreGrowthHacks || onGenerate)(growthHackFocus ? `Focus specifically on Growth Hack Automation tracking this direction: ${growthHackFocus}` : strategicFocus);
+                                        }
+                                    }}
+                                />
+                                <Terminal size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within/input:text-indigo-500 transition-colors" />
+                            </div>
+                        </div>
+                        <div className="mb-0.5">
+                            <RefreshButton 
+                                isLoading={loadingGrowthHacks}
+                                onClick={() => {
+                                    setActiveAutomationIdx(0);
+                                    (onGenerateMoreGrowthHacks || onGenerate)(growthHackFocus ? `Focus specifically on Growth Hack Automation tracking this direction: ${growthHackFocus}` : strategicFocus);
+                                }} 
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    {(() => {
+                        const automations = Array.isArray(plan.growthHackAutomation) ? plan.growthHackAutomation : [plan.growthHackAutomation];
+                        if (!automations || automations.length === 0 || !automations[0]) return null;
+                        
+                        // Ensure active index is within bounds
+                        const activeIndex = activeAutomationIdx < automations.length ? activeAutomationIdx : 0;
+                        const automation = automations[activeIndex];
+                        
+                        return (
+                            <>
+                                {automations.length > 1 && (
+                                    <div className="flex flex-wrap gap-2 pb-4 mb-4">
+                                        {automations.map((auto, idx) => {
+                                            const buttonText = auto?.title || auto?.objective || `Automation ${idx + 1}`;
+                                            const displayText = buttonText.length > 35 ? buttonText.substring(0, 35) + "..." : buttonText;
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setActiveAutomationIdx(idx)}
+                                                    className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+                                                        activeIndex === idx 
+                                                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' 
+                                                        : 'bg-indigo-50/50 text-indigo-600 hover:bg-indigo-100'
+                                                    }`}
+                                                    title={buttonText}
+                                                >
+                                                    {displayText}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                
+                                <div className="automation-block">
+                                    <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-8 mb-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div>
+                                                {automation.overview && (
+                                                    <div className="mb-6">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">{t.campaignPlanStep.growthHack.overview}</span>
+                                                        <p className="text-[15px] font-medium text-gray-800 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-gray-100">{automation.overview}</p>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">{t.campaignPlanStep.growthHack.objective}</span>
+                                                    <button
+                                                        onClick={() => handleRefreshSingleAutomation(activeIndex)}
+                                                        disabled={isRefreshingSingle}
+                                                        className="px-3 py-1 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                                        title={language === 'pt' ? 'Regerar esta automação com IA' : 'Regenerate this automation with AI'}
+                                                    >
+                                                        <RefreshCw size={11} className={isRefreshingSingle ? "animate-spin text-indigo-500" : ""} />
+                                                        {language === 'pt' ? 'Recriar esta Automação' : 'Regenerate Automation'}
+                                                    </button>
+                                                </div>
+                                                <h4 className="text-xl font-bold text-gray-900 leading-tight mb-4">{automation.objective}</h4>
+                                                
+                                                {automation.ultimateOutcome && (
+                                                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl relative overflow-hidden group/success">
+                                                        <div className="absolute -right-2 -bottom-2 opacity-10 group-hover/success:scale-110 transition-transform">
+                                                            <CheckCircle2 size={60} className="text-emerald-600" />
+                                                        </div>
+                                                        <div className="relative z-10">
+                                                            <span className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em] block mb-1">Ultimate Outcome (Success Definition)</span>
+                                                            <p className="text-sm font-bold text-emerald-900 leading-relaxed">{automation.ultimateOutcome}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">{t.campaignPlanStep.growthHack.why}</span>
+                                                <p className="text-[15px] font-medium text-gray-600 leading-relaxed">{automation.why}</p>
+                                            </div>
+                                            <div className="flex flex-col justify-center bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                                <div className="absolute -right-4 -bottom-4 opacity-5">
+                                                    <Bot size={100} />
+                                                </div>
+                                                <div className="relative z-10 flex flex-col items-center justify-center text-center pb-4 border-b border-gray-100 mb-4">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">Main System</span>
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-200"><Bot size={24} /></div>
+                                                        <span className="text-2xl font-black text-gray-900">{automation.aiAgent}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {automation.subAgents && automation.subAgents.length > 0 && (
+                                                    <div className="relative z-10 pt-2">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
+                                                        <Zap size={12} className="text-amber-500" /> System Architecture & Sub-Agents
+                                                        </span>
+                                                        <div className="flex flex-col gap-4">
+                                                            {automation.subAgents.map((agent, aIdx) => (
+                                                                <div key={aIdx} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-600 flex justify-center items-center font-bold text-[10px] shrink-0">
+                                                                            {agent.role.includes('Orchestra') ? <Terminal size={12} /> : <Bot size={12} />}
+                                                                        </div>
+                                                                        <h5 className="font-bold text-sm text-gray-900">{agent.name}</h5>
+                                                                        <span className="text-[10px] bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full ml-auto whitespace-nowrap">{agent.role}</span>
+                                                                    </div>
+                                                                    {agent.skills && agent.skills.length > 0 && (
+                                                                        <div className="flex flex-wrap gap-1.5 mt-3">
+                                                                            {agent.skills.map((skill, sIdx) => (
+                                                                                <span key={sIdx} className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-medium border border-indigo-100/50 flex items-center gap-1">
+                                                                                    {skill}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-8">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">{t.campaignPlanStep.growthHack.copyPrompt}</span>
+                                        <div className="bg-gray-900 rounded-[2rem] p-8 relative group/code shadow-lg">
+                                            <pre className="text-gray-300 font-mono text-sm whitespace-pre-wrap leading-relaxed pb-16">{automation.initialPrompt}</pre>
+                                            <button 
+                                                className="absolute bottom-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(automation.initialPrompt || "");
+                                                }}
+                                                title={t.campaignPlanStep.growthHack.copyPrompt}
+                                            >
+                                                <Copy size={16} /> <span className="text-xs font-bold uppercase tracking-wider">Copy</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
+                                        <div>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-4 flex items-center gap-2">
+                                                <CheckCircle size={14} className="text-emerald-500" /> {t.campaignPlanStep.growthHack.tasks}
+                                            </span>
+                                            <ul className="space-y-4">
+                                                {(automation.tasks || []).map((task, i) => (
+                                                    <li key={i} className="flex items-start gap-4">
+                                                        <div className="w-6 h-6 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 font-black text-xs mt-0.5">{i+1}</div>
+                                                        <span className="text-[15px] text-gray-700 font-medium leading-relaxed">{task}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
         </div>

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { Language, GenerationMode } from "../types";
+import { getModel } from "./aiCore";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -82,7 +83,7 @@ export const generateCompetitorAnalysis = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: mode === 'Quality' ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview',
+            model: getModel(mode),
             contents: `You are a specialized Market Research Analyst. Perform a Google Search to find DIRECT COMPETITORS for the product defined below.
 
             ${strictContext}
@@ -156,7 +157,7 @@ export const generatePricingSuggestions = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: mode === 'Quality' ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview',
+            model: getModel(mode),
             contents: `Act as a Pricing Strategist and Monetization Architect.
             
             PRODUCT CONTEXT:
@@ -184,8 +185,7 @@ export const generatePricingSuggestions = async (
             Answer strictly in ${getLangName(lang)}.`,
             config: { 
                 responseMimeType: "application/json", 
-                responseSchema: schema, 
-                tools: [{googleSearch: {}}]
+                responseSchema: schema
             }
         });
         return extractJSON(response.text);

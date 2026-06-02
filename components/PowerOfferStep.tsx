@@ -54,15 +54,25 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
           
           <div className="mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-500/5">
              <label className="block text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-               <Compass size={14} className="text-indigo-500" /> {t.offerStep.pivotLabel || "Strategic Pivot (Refine Angle)"}
+               <Compass size={14} className="text-indigo-500" /> {t.dreamBuyerStep.pivotLabel || "Strategic Direction (Optional)"}
              </label>
-             <input 
-                type="text" 
-                value={strategicFocus}
-                onChange={(e) => onUpdateFocus?.(e.target.value)}
-                placeholder={t.offerStep.pivotPlaceholder || "Ex: Focus on exclusivity, urgency, or high value..."}
-                className="w-full bg-slate-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
-             />
+             <div className="flex flex-col md:flex-row gap-3">
+                 <input 
+                    type="text" 
+                    value={strategicFocus}
+                    onChange={(e) => onUpdateFocus?.(e.target.value)}
+                    placeholder={t.dreamBuyerStep.pivotPlaceholder || "Ex: Focus on affluent urban professionals or parents of twins..."}
+                    className="flex-1 bg-slate-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-gray-300"
+                 />
+                 <button 
+                     onClick={() => onGenerate(strategicFocus)}
+                     disabled={loading}
+                     className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 w-full md:w-auto shrink-0"
+                 >
+                     <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                     {t.common.refresh}
+                 </button>
+             </div>
           </div>
 
           <div ref={containerRef} className={`border-2 border-dashed rounded-3xl p-16 text-center transition-all group border-gray-200 bg-gray-50/50 hover:bg-gray-50`}>
@@ -95,7 +105,7 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
 
     return (
         <div className="animate-slide-up relative pb-16 w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
                 <div>
                     <h2 className="text-4xl font-display font-bold text-gray-900">{t.offerStep.title}</h2>
                     <p className="text-lg text-gray-500 mt-2">{t.offerStep.subtitle}</p>
@@ -110,37 +120,25 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
                         <Trash2 size={16} />
                         <span className="text-xs font-bold hidden sm:inline">{t.common.clearData}</span>
                     </button>
-                    <button 
-                        onClick={() => onGenerate(strategicFocus)} 
-                        disabled={loading} 
-                        className={`text-sm font-bold flex items-center transition-all px-6 py-3 rounded-xl border transition-all duration-300 ${
-                        loading 
-                            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
-                            : 'text-indigo-600 bg-white border-indigo-100 hover:bg-indigo-50 hover:shadow-md'
-                        }`}
-                    >
-                        {loading ? <Loader2 size={14} className="mr-2 animate-spin" /> : <Zap size={14} className="mr-2 fill-indigo-600 text-indigo-600" />}
-                        {loading ? t.common.analyzing : t.dreamBuyerStep.anotherAngle}
-                    </button>
                 </div>
             </div>
 
             <div className="mb-8 bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-indigo-500/5">
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
-                <Compass size={14} className="text-indigo-500" /> {t.offerStep.pivotLabel || "Strategic Pivot (Refine Angle)"}
+                <Compass size={14} className="text-indigo-500" /> {t.dreamBuyerStep.pivotLabel || "Strategic Direction (Optional)"}
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-col md:flex-row gap-3">
                     <input 
                         type="text" 
                         value={strategicFocus}
                         onChange={(e) => onUpdateFocus?.(e.target.value)}
-                        placeholder={t.offerStep.pivotPlaceholder || "Ex: Focus on exclusivity, urgency, or high value..."}
+                        placeholder={t.dreamBuyerStep.pivotPlaceholder || "Ex: Focus on affluent urban professionals or parents of twins..."}
                         className="flex-1 bg-slate-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                     />
                     <button 
                         onClick={() => onGenerate(strategicFocus)}
                         disabled={loading}
-                        className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-indigo-100"
+                        className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 w-full md:w-auto shrink-0"
                     >
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         {t.common.refresh}
@@ -156,6 +154,48 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
                     </div>
                     {offer ? (
                       <div className="space-y-6 animate-fade-in w-full">
+                          {offer.paretoFocus && (
+                              <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                                  <div className="absolute top-0 right-0 p-8 opacity-5 transform group-hover:scale-110 transition-transform duration-500">
+                                      <Zap size={160} className="text-indigo-200" />
+                                  </div>
+                                  <div className="relative z-10">
+                                      <div className="flex items-center space-x-2 mb-6">
+                                          <div className="p-2 bg-indigo-500/20 backdrop-blur rounded-lg text-indigo-300">
+                                              <Compass size={20} />
+                                          </div>
+                                          <h3 className="text-xl font-bold text-white uppercase tracking-wider">{t.offerStep.paretoTitle}</h3>
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                          <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-700">
+                                              <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center">
+                                                  <Zap size={14} className="mr-1" /> {t.offerStep.pareto20}
+                                              </div>
+                                              <p className="text-white font-medium leading-relaxed">{offer.paretoFocus.the20Percent}</p>
+                                          </div>
+                                          <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-slate-700">
+                                              <div className="text-xs font-bold text-green-400 uppercase tracking-widest mb-2 flex items-center">
+                                                  <CheckCircle2 size={14} className="mr-1" /> {t.offerStep.pareto80}
+                                              </div>
+                                              <p className="text-white font-medium leading-relaxed">{offer.paretoFocus.the80PercentOutcome}</p>
+                                          </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                          <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30">
+                                              <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">{t.offerStep.paretoInnovation}</div>
+                                              <p className="text-indigo-100 font-medium leading-relaxed">{offer.paretoFocus.innovationStrategy}</p>
+                                          </div>
+                                          <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30">
+                                              <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">{t.offerStep.paretoAction}</div>
+                                              <p className="text-indigo-100 font-medium leading-relaxed">{offer.paretoFocus.focusAction}</p>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+
                           <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-lg hover:shadow-xl transition-all">
                               <div className="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4"><Star size={12} className="mr-1 fill-indigo-700"/> {t.offerStep.corePromise}</div>
                               <h3 className="text-3xl font-display font-bold text-gray-900 mb-2 leading-tight">"{offer.headline}"</h3>

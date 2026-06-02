@@ -1,5 +1,5 @@
 import { Type } from "@google/genai";
-import { Language, GenerationMode, EmailStyle, IndustryNews } from "../types";
+import { Language, GenerationMode, EmailStyle, IndustryNews, SoftwareRecommendation } from "../types";
 import { getAI, getModel, extractJSON, extractJsonArrayObjects } from "./aiCore";
 import { 
   buildMetaAdPrompt, 
@@ -11,7 +11,8 @@ import {
   buildSceneRefreshPrompt, 
   buildNewsStreamPrompt, 
   buildLinkedInPrompt, 
-  buildPhoneScriptPrompt 
+  buildPhoneScriptPrompt,
+  buildSoftwareRecommendationsPrompt
 } from "./prompts/creativePrompts";
 
 export const generateCreativeText = async (context: string, style: string, location: string, lang: Language, mode: GenerationMode, strategicPillar?: string, isRefresh: boolean = false): Promise<any> => {
@@ -55,15 +56,15 @@ export const generateCreativeImage = async (
 ): Promise<string | null> => {
     const ai = getAI();
     try {
-        const finalPrompt = buildCreativeImagePrompt(prompt, style, composition, brandKit, lang);
-
-        const parts: any[] = [{ text: finalPrompt }];
-        
         // Handle single string or array of strings
         const imagesToProcess = Array.isArray(baseImages) 
             ? baseImages 
             : (baseImages ? [baseImages] : []);
 
+        const finalPrompt = buildCreativeImagePrompt(prompt, style, composition, brandKit, lang, imagesToProcess.length > 0);
+
+        const parts: any[] = [{ text: finalPrompt }];
+        
         if (imagesToProcess.length > 0) {
             imagesToProcess.forEach(img => {
                 // strip prefix if present
@@ -78,24 +79,38 @@ export const generateCreativeImage = async (
             parts.push({ text: `Use the above ${imagesToProcess.length} image(s) as the main reference/foundation for the product/subject.` });
         }
         
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts },
-            config: {
-                imageConfig: { aspectRatio: aspectRatio as any } 
-            }
-        });
-
-        if (response.candidates?.[0]?.content?.parts) {
-            for (const part of response.candidates[0].content.parts) {
-                if (part.inlineData?.data) {
-                    return `data:image/png;base64,${part.inlineData.data}`;
+        const imageModels = ['gemini-3.1-flash-image', 'gemini-2.5-flash-image'];
+        
+        for (const model of imageModels) {
+            try {
+                // Map "4:5" or "4x5" to "3:4" as it is the closest officially supported portrait aspect ratio in Gemini Image models
+                let finalRatio = aspectRatio;
+                if (finalRatio === "4:5" || finalRatio === "4x5") {
+                    finalRatio = "3:4";
                 }
+
+                const response = await ai.models.generateContent({
+                    model: model,
+                    contents: { parts },
+                    config: {
+                        imageConfig: { aspectRatio: finalRatio as any } 
+                    }
+                });
+
+                if (response.candidates?.[0]?.content?.parts) {
+                    for (const part of response.candidates[0].content.parts) {
+                        if (part.inlineData?.data) {
+                            return `data:image/png;base64,${part.inlineData.data}`;
+                        }
+                    }
+                }
+            } catch (err: any) {
+                console.warn(`Creative Image Generation with model ${model} failed, trying next...`, err.message || err);
             }
         }
         return null;
     } catch (e) {
-        console.error("Image gen failed", e);
+        console.error("Image gen failed entirely", e);
         return null;
     }
 };
@@ -198,6 +213,7 @@ export const generateStoryboard = async (context: string, location: string, lang
         properties: {
             title: { type: Type.STRING },
             narrativeSummary: { type: Type.STRING },
+            viralMusicTrack: { type: Type.STRING },
             scenes: {
                 type: Type.ARRAY,
                 items: {
@@ -292,7 +308,7 @@ export const fetchIndustryNewsStream = async (industry: string, location: string
 
     try {
         const streamResponse = await ai.models.generateContentStream({
-            model: 'gemini-3-pro-preview', // Force Pro for better search
+            model: 'gemini-3.1-pro-preview', // Force Pro for better search
             contents: buildNewsStreamPrompt(industry, location, productContext, buyerContext, lang, existingHeadlines),
             config: {
                 responseMimeType: "application/json",
@@ -384,3 +400,128 @@ export const generatePhoneScripts = async (context: string, location: string, di
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
+
+export const generateSoftwareRecommendations = async (
+    productContext: string,
+    campaignContext: string,
+    location: string,
+    lang: Language,
+    mode: GenerationMode,
+    customDirection?: string
+): Promise<{ tools: SoftwareRecommendation[] } | null> => {
+    const ai = getAI();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            tools: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        category: { type: Type.STRING },
+                        overview: { type: Type.STRING },
+                        objective: { type: Type.STRING },
+                        ultimateOutcome: { type: Type.STRING },
+                        why: { type: Type.STRING },
+                        aiAgent: { type: Type.STRING },
+                        subAgents: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    role: { type: Type.STRING },
+                                    skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+                                },
+                                required: ["name", "role", "skills"]
+                            }
+                        },
+                        initialPrompt: { type: Type.STRING },
+                        tasks: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ["name", "category", "overview", "objective", "ultimateOutcome", "why", "aiAgent", "initialPrompt", "tasks"]
+                }
+            }
+        },
+        required: ["tools"]
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: buildSoftwareRecommendationsPrompt(productContext, campaignContext, location, lang, customDirection),
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
+        });
+        return extractJSON(response.text);
+    } catch (e) {
+        console.error("Failed generating software recommendations", e);
+        return null;
+    }
+};
+
+export const generateSingleSoftwareRecommendation = async (
+    productContext: string,
+    campaignContext: string,
+    location: string,
+    lang: Language,
+    mode: GenerationMode,
+    toolToReplace: any,
+    customDirection?: string
+): Promise<SoftwareRecommendation | null> => {
+    const ai = getAI();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            name: { type: Type.STRING },
+            category: { type: Type.STRING },
+            overview: { type: Type.STRING },
+            objective: { type: Type.STRING },
+            ultimateOutcome: { type: Type.STRING },
+            why: { type: Type.STRING },
+            aiAgent: { type: Type.STRING },
+            subAgents: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        name: { type: Type.STRING },
+                        role: { type: Type.STRING },
+                        skills: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ["name", "role", "skills"]
+                }
+            },
+            initialPrompt: { type: Type.STRING },
+            tasks: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["name", "category", "overview", "objective", "ultimateOutcome", "why", "aiAgent", "initialPrompt", "tasks"]
+    };
+
+    try {
+        const prompt = buildSoftwareRecommendationsPrompt(productContext, campaignContext, location, lang, customDirection);
+        const systemPrompt = `You are an expert digital tool consultant. Please generate exactly ONE alternative, high-value web tool, software platform, or browser extension recommendation to REPLACE this existing suggestion: 
+        - Existing Tool Name: ${toolToReplace?.name}
+        - Existing Category: ${toolToReplace?.category}
+        - Existing Objective: ${toolToReplace?.objective}
+        
+        The replacement must be completely distinct, offering alternative value to solve the user's workflow puzzles or support their final-customer experience better. Make it highly personalized, comprehensive, with clear setup guidelines and 4-6 task lists.`;
+
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: `${prompt}\n\nREPLACEMENT TARGET:\n${systemPrompt}`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
+        });
+        return extractJSON(response.text) as SoftwareRecommendation;
+    } catch (e) {
+        console.error("Failed generating single software recommendation", e);
+        return null;
+    }
+};
+

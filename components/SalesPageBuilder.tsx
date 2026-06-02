@@ -732,7 +732,7 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
     const inactiveSections = AVAILABLE_SECTIONS.filter(s => !selectedSections.includes(s.id));
 
     return (
-        <div className="flex flex-col h-[85vh] min-h-[600px] overflow-hidden">
+        <div className="flex flex-col h-auto lg:h-[1200px] min-h-[800px] lg:overflow-hidden">
             <BriefingModal 
                 isOpen={showBriefing}
                 onClose={() => setShowBriefing(false)}
@@ -765,9 +765,9 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
                     <div className="flex flex-col">
                         <span className={`text-xs font-bold flex items-center gap-1.5 ${data.isSolutionAware ? 'text-emerald-800' : 'text-gray-500'}`}>
                             <Magnet size={14} className={data.isSolutionAware ? 'fill-emerald-800' : ''} />
-                            Solution Aware
+                            {t.salesPageBuilder.settings.solutionAware}
                         </span>
-                        <span className={`text-[9px] font-medium ${data.isSolutionAware ? 'text-emerald-600' : 'text-gray-400'}`}>Leadform on Hero</span>
+                        <span className={`text-[9px] font-medium ${data.isSolutionAware ? 'text-emerald-600' : 'text-gray-400'}`}>{t.salesPageBuilder.settings.leadformHero}</span>
                     </div>
                     <button 
                         onClick={() => handleDataUpdate({ ...data, isSolutionAware: !data.isSolutionAware })}
@@ -835,8 +835,8 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden pb-4">
-                <div className="w-full lg:w-80 flex-shrink-0 bg-white border border-gray-200 rounded-3xl flex flex-col shadow-sm overflow-hidden h-full">
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 lg:overflow-hidden pb-4">
+                <div className="w-full lg:w-80 flex-shrink-0 bg-white border border-gray-200 rounded-3xl flex flex-col shadow-sm overflow-hidden h-[600px] lg:h-full">
                     <div className="grid grid-cols-2 border-b border-gray-100">
                         <button 
                             onClick={() => setActiveLeftTab('structure')}
@@ -953,7 +953,7 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
                     )}
                 </div>
 
-                <div className="flex-1 bg-gray-100 border border-gray-200 rounded-3xl overflow-hidden relative flex flex-col shadow-inner">
+                <div className="flex-1 min-h-[700px] lg:min-h-0 bg-gray-100 border border-gray-200 rounded-3xl overflow-hidden relative flex flex-col shadow-inner">
                     <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">

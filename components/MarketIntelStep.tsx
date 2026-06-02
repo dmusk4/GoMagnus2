@@ -164,7 +164,7 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
     
     return (
         <div className="animate-slide-up pb-12 w-full">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
                 <div>
                     <h2 className="text-4xl font-display font-bold text-gray-900">{t.marketIntelStep.title}</h2>
                     <p className="text-lg text-gray-500 mt-2">{t.marketIntelStep.subtitle} ({product.location}).</p>

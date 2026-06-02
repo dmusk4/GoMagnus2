@@ -28,6 +28,7 @@ interface MetaAdsStudioProps {
   setGlobalShotType: (val: string) => void;
   excludeBuyerContext?: boolean;
   setExcludeBuyerContext?: (val: boolean) => void;
+  setLightboxImage?: (url: string | null) => void;
 }
 
 export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
@@ -35,7 +36,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
   customMetaDirection, setCustomMetaDirection, onGenerateCreative, onRefreshText, onGenerateImage,
   onUpdate, handleCopyText, handleDownloadImage, copiedId, FoundationPicker, COMPOSITIONS,
   globalBaseImages, setGlobalBaseImages, globalShotType, setGlobalShotType,
-  excludeBuyerContext, setExcludeBuyerContext
+  excludeBuyerContext, setExcludeBuyerContext, setLightboxImage
 }) => {
   const t = getTranslation(language);
   const creatives = Array.isArray(product.creatives) ? product.creatives : [];
@@ -51,13 +52,13 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
         {setExcludeBuyerContext && (
             <button 
                 onClick={() => setExcludeBuyerContext(!excludeBuyerContext)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${excludeBuyerContext ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-gray-200 text-gray-500'}`}
-                title="Toggle to ignore Dream Buyer context for this generation"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${!excludeBuyerContext ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-gray-200 text-gray-500'}`}
+                title="Toggle to use Dream Buyer context for this generation"
             >
-                {excludeBuyerContext ? <ToggleRight className="text-amber-500" /> : <ToggleLeft className="text-gray-400" />}
+                {!excludeBuyerContext ? <ToggleRight className="text-indigo-500" /> : <ToggleLeft className="text-gray-400" />}
                 <div className="flex flex-col items-start">
-                    <span className="text-[10px] font-bold uppercase tracking-widest">{excludeBuyerContext ? "Raw Product Mode" : "Strategy Aware"}</span>
-                    <span className="text-[9px] opacity-70 font-medium leading-none">{excludeBuyerContext ? "Ignoring Dream Buyer" : "Using Full Context"}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{!excludeBuyerContext ? "Strategy: Active" : "Strategy: Disabled"}</span>
+                    <span className="text-[9px] opacity-70 font-medium leading-none">{!excludeBuyerContext ? "Using Dream Buyer" : "Ignoring Dream Buyer"}</span>
                 </div>
             </button>
         )}
@@ -162,7 +163,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
              </div>
           </div>
 
-          <button onClick={() => onGenerateCreative(activeStyle, customMetaDirection)} disabled={isSocialLoading} className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap h-[46px] shrink-0 ${isSocialLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
+          <button onClick={() => onGenerateCreative(activeStyle, customMetaDirection)} disabled={isSocialLoading} className={`flex w-full xl:w-auto justify-center items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg shrink-0 ${isSocialLoading ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95'}`}>
             {isSocialLoading ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
             {isSocialLoading ? t.common.analyzing : t.common.generate}
           </button>
@@ -202,10 +203,15 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                   </div>
                 )}
               </div>
-              <div className="aspect-square bg-gray-50 relative overflow-hidden group/image border-y border-gray-50">
+              <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden group/image border-y border-gray-50">
                 {creative.imageUrl ? (
-                  <div className="w-full h-full relative">
-                    <img src={creative.imageUrl} className="w-full h-full object-cover" alt="Ad Visual" />
+                  <div className="w-full h-full relative cursor-zoom-in group" onClick={() => setLightboxImage?.(creative.imageUrl!)}>
+                    <img src={creative.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Ad Visual" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                            <Compass size={20} className="text-indigo-600" />
+                        </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-end p-8 bg-indigo-50/20"><button onClick={() => onGenerateImage(creative.id, creative.visualPrompt, creativeBase, globalShotType, creative.style)} disabled={isImgLoading} className="bg-indigo-600 text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-gray-900 transition-all flex items-center disabled:opacity-50"><Palette className="mr-2" size={14} />{isImgLoading ? t.common.building : t.creativesStep.craftVisual}</button></div>

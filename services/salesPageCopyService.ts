@@ -565,7 +565,7 @@ CRITICAL AESTHETIC RULE: Favor monochromatic (Slate, Charcoal, Black, Zinc). AVO
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-3.1-pro-preview',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -614,7 +614,7 @@ export const refineLandingPageCopy = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-3.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",

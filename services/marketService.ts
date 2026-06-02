@@ -79,30 +79,39 @@ export const generateDreamBuyerStream = async (productContext: string, previousB
 export const generateAvatarVisuals = async (physicalDescription: string, productName: string): Promise<string[]> => {
     const ai = getAI();
     const options: string[] = [];
-    try {
-        const prompt = `Extreme minimalist high-definition studio portrait of an ordinary person, ${physicalDescription}.
-        MANDATORY: NO BACKGROUND, NO ENVIRONMENT, NO OBJECTS. Ensure there are NO objects in hands, NO objects in background, NO furniture.
-        Framing: Close-up head and shoulders only. 
-        Lighting: Clean, soft, professional studio light.
-        Style: Authentic, photorealistic, 8k resolution.`;
-        
-        const res = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: { parts: [{ text: prompt }] },
-            config: { 
-                imageConfig: { aspectRatio: "1:1" }
-            } 
-        });
-        
-        if (res?.candidates?.[0]?.content?.parts) {
-            for (const part of res.candidates[0].content.parts) {
-                if (part.inlineData?.data) {
-                    options.push(`data:image/png;base64,${part.inlineData.data}`);
+    const imageModels = ['gemini-2.5-flash-image', 'gemini-3.1-flash-image-preview', 'gemini-3-pro-image-preview'];
+    
+    const prompt = `Extreme minimalist high-definition studio portrait of an ordinary person, ${physicalDescription}.
+    MANDATORY: NO BACKGROUND, NO ENVIRONMENT, NO OBJECTS. Ensure there are NO objects in hands, NO objects in background, NO furniture.
+    Framing: Close-up head and shoulders only. 
+    Lighting: Clean, soft, professional studio light.
+    Style: Authentic, photorealistic, 8k resolution.`;
+    
+    for (const model of imageModels) {
+        try {
+            const res = await ai.models.generateContent({
+                model: model,
+                contents: { parts: [{ text: prompt }] },
+                config: { 
+                    imageConfig: { aspectRatio: "1:1" }
+                } 
+            });
+            
+            if (res?.candidates?.[0]?.content?.parts) {
+                let found = false;
+                for (const part of res.candidates[0].content.parts) {
+                    if (part.inlineData?.data) {
+                        options.push(`data:image/png;base64,${part.inlineData.data}`);
+                        found = true;
+                    }
+                }
+                if (found) {
+                    return options;
                 }
             }
+        } catch (e: any) {
+            console.warn(`Avatar Visual Generation failed with model ${model}, trying next...`, e.message || e);
         }
-    } catch (e) {
-        console.error("Avatar Visual Generation failed:", e);
     }
     return options;
 }
@@ -120,7 +129,7 @@ export const generateMarketPatterns = async (name: string, description: string, 
     };
     try {
         const response = await ai.models.generateContent({
-            model: mode === 'Quality' ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview',
+            model: getModel(mode),
             contents: `You are a forensic market analyst. Use Google Search to analyze the REAL market conditions for "${name}" in "${location}".
             
             DESCRIPTION: ${description}
@@ -161,18 +170,17 @@ export const generateLeanCanvas = async (name: string, description: string, lang
     };
     try {
         const response = await ai.models.generateContent({
-            model: mode === 'Quality' ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview',
+            model: getModel(mode),
             contents: `Generate a Lean Canvas for "${name}". 
             
             CONTEXT: ${description}
             
-            CRITICAL: Use Google Search to understand the brand's actual business model, pricing, and distribution if available. Ensure the Problem and Solution are strictly grounded in what this specific product actually does. Avoid generic business jargon.
+            CRITICAL: Understand a standard business model, pricing, and distribution for a product like this. Ensure the Problem and Solution are strictly grounded in what this specific product actually does. Avoid generic business jargon.
             
             Answer strictly in ${getLangName(lang)}.`,
             config: { 
                 responseMimeType: "application/json", 
-                responseSchema: schema, 
-                tools: [{googleSearch: {}}]
+                responseSchema: schema
             }
         });
         return extractJSON(response.text);
@@ -192,7 +200,7 @@ export const generateBrandReputation = async (name: string, url: string, lang: L
     };
     try {
         const response = await ai.models.generateContent({
-            model: mode === 'Quality' ? 'gemini-3-pro-image-preview' : 'gemini-3-flash-preview',
+            model: getModel(mode),
             contents: `Realiza uma pesquisa real e profunda utilizando o Google Search sobre a reputação exata da marca "${name}".
             Analisa reviews genuínos e sentimentos online. 
             INSTRUÇÃO: Fornece insights diretos e acionáveis. Não é necessário repetir o nome da marca em cada ponto da lista. 
@@ -245,7 +253,7 @@ export const analyzeProductUrl = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview', // Force Pro for forensic analysis to ensure search capability and quality
+            model: 'gemini-3.1-pro-preview', // Force Pro for forensic analysis to ensure search capability and quality
             contents: `Forensic Marketing Analysis of: ${url}. ${groundText}
             CRITICAL INSTRUCTIONS:
             1. Extract the EXACT Brand Name or Product Name from H1 tags, titles, and logos. Do NOT use generic terms like "Store" or "Service".
