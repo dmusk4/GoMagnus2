@@ -29,6 +29,7 @@ interface CreativesStepProps {
   onGenerateStoryboard: (style: string, customDirection?: string) => void | Promise<void>;
   onGenerateSceneImage: (sceneNumber: number, prompt: string, base: string | undefined, storyboardId?: string) => void | Promise<void>;
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<string | null | undefined>;
+  onImagesPasted?: (files: File[]) => Promise<string | null | undefined>;
   onUpdate: (creatives: Creative[]) => void;
   onUpdateSearchAds: (searchAds: SearchAdGroup[]) => void;
   onUpdateStoryboard: (storyboard: Storyboard) => void;
@@ -71,10 +72,10 @@ const EMAIL_STYLES: EmailStyle[] = ["Human-Written", "HTML Newsletter"];
 const BASE_SOCIAL_STYLES: Creative['style'][] = [
     'Product-First',
     'Direct-Response', 
+    'Short-Human',
     'Minimalist',
     'Storytelling',
     'UGC/Raw',
-    'Short-Human',
     'YouTube-Thumbnail',
     'Breaking News',
     'Highlight Method',
@@ -82,7 +83,9 @@ const BASE_SOCIAL_STYLES: Creative['style'][] = [
     'Social Gossip',
     'Pop-Culture-Twist', 
     'Humor', 
-    'Versus'
+    'Versus',
+    'SMS-Mockup',
+    'Native-Social'
 ];
 
 const BASE_STORYBOARD_STYLES = ['Viral-Hook', 'Humor/Skit', 'Trending-Audio', 'Problem-Solution', 'ASMR/Satisfying'];
@@ -153,6 +156,9 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const customMetaDirection = creativeSettings.metaDirection || "";
   const setCustomMetaDirection = (val: string) => updateSettings({ metaDirection: val });
 
+  const metaTextLength = creativeSettings.metaTextLength || "medium";
+  const setMetaTextLength = (val: 'tweet' | 'short' | 'medium' | 'long') => updateSettings({ metaTextLength: val });
+
   const customLinkedInDirection = creativeSettings.linkedinDirection || "";
   const setCustomLinkedInDirection = (val: string) => updateSettings({ linkedinDirection: val });
 
@@ -174,6 +180,8 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   // Visual Controls (Meta Ads)
   const metaShotType = creativeSettings.metaShotType || "Medium Shot";
   const setMetaShotType = (val: string) => updateSettings({ metaShotType: val });
+  const metaImagesCount = creativeSettings.metaImagesCount || 1;
+  const setMetaImagesCount = (val: number) => updateSettings({ metaImagesCount: val });
 
   // Determine effective base image. 
   // If explicit selection exists (even empty string or empty array for "none"), use it.
@@ -497,6 +505,10 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             setExcludeBuyerContext={setExcludeBuyerContext}
             onGenerateImage={(id, prompt, base, comp) => props.onGenerateImage(id, prompt, base, comp, activeStyle)}
             setLightboxImage={setLightboxImage}
+            metaImagesCount={metaImagesCount}
+            onUpdateMetaImagesCount={setMetaImagesCount}
+            metaTextLength={metaTextLength}
+            setMetaTextLength={setMetaTextLength}
           />
         )}
 

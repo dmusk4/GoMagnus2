@@ -72,34 +72,17 @@ const initialProduct: Product = {
 
 function App() {
   const [products, setProducts] = useState<Product[]>(() => {
+    // Clear product memory on reload/refresh to start completely fresh as requested: "ao fazer refresh deves limpar tudo o que está em memória"
     try {
-      const saved = localStorage.getItem('market_hero_products');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
+      localStorage.removeItem('market_hero_products');
+      localStorage.removeItem('market_hero_active_product_id');
     } catch (e) {
-      console.error("Failed to load products from localStorage:", e);
+      console.error("Failed to clear products localStorage:", e);
     }
     return [initialProduct];
   });
 
   const [activeProductId, setActiveProductId] = useState<string>(() => {
-    try {
-      const savedProd = localStorage.getItem('market_hero_products');
-      const savedId = localStorage.getItem('market_hero_active_product_id');
-      if (savedProd) {
-        const parsed = JSON.parse(savedProd);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          if (savedId && parsed.some(p => p.id === savedId)) {
-            return savedId;
-          }
-          return parsed[0].id;
-        }
-      }
-    } catch (e) {}
     return initialProduct.id;
   });
 
@@ -172,7 +155,14 @@ function App() {
   // Sync to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('market_hero_products', JSON.stringify(products));
+      // Strip out huge base64 image data strings to prevent exceeding localStorage quota limit (~5MB)
+      const serialized = JSON.stringify(products, (key, value) => {
+        if (typeof value === 'string' && (value.startsWith('data:image/') || value.length > 50000)) {
+          return '[image_data]';
+        }
+        return value;
+      });
+      localStorage.setItem('market_hero_products', serialized);
     } catch (e) {
       console.error("Failed to save products to localStorage:", e);
     }
@@ -508,7 +498,7 @@ function App() {
     });
   };
 
-  const handleRefreshMarketPart = async (productId: string, part: 'patterns' | 'canvas' | 'brand' | 'pricing') => {
+  const handleRefreshMarketPart = async (productId: string, part: 'patterns' | 'canvas' | 'brand' | 'pricing' | 'competitors') => {
     const p = productsRef.current.find(prod => prod.id === productId);
     if (!p) return;
     
@@ -536,6 +526,13 @@ function App() {
              const validComps = p.marketIntel?.competitors || [];
              const res = await generatePricingSuggestions(p.name, p.description, productTypeContext, p.location || "Global", validComps, language, generationMode);
              if (res) updateProduct(prev => ({ marketIntel: { ...(prev.marketIntel as MarketIntel), pricingSuggestions: res } }), productId);
+        }
+        if (part === 'competitors') {
+             const res = await generateCompetitorAnalysis(p.name, p.description, productTypeContext, p.location || "Global", language, generationMode);
+             if (res && res.competitors) {
+                  const validComps = Array.isArray(res.competitors) ? res.competitors : [];
+                  updateProduct(prev => ({ marketIntel: { ...(prev.marketIntel as MarketIntel), competitors: validComps } }), productId);
+             }
         }
     } catch(e) {
         console.error(e);
@@ -735,8 +732,13 @@ function App() {
         } else {
              contextPayload = JSON.stringify(p);
         }
+        
+        let lengthInstruction = "";
+        if (p.creativeSettings?.metaTextLength === 'tweet') lengthInstruction = "COPY LENGTH: Make the copy extremely short, like a tweet (under 140 characters).";
+        else if (p.creativeSettings?.metaTextLength === 'short') lengthInstruction = "COPY LENGTH: Make the copy very short and punchy.";
+        else if (p.creativeSettings?.metaTextLength === 'long') lengthInstruction = "COPY LENGTH: Make the copy long, detailed, and comprehensive.";
 
-        const context = userDirectionContext + contextPayload;
+        const context = userDirectionContext + (lengthInstruction ? `\n\n${lengthInstruction}\n\n` : "") + contextPayload;
         // Added: isRefresh flag (last argument)
         const result = await generateCreativeText(context, style, p.location, language, generationMode, strategicPillar, !!existingId);
         if (result) {
@@ -895,14 +897,26 @@ function App() {
     try {
         const sanitizedPrompt = (prompt || "Professional product visualization").replace(/["']/g, "").substring(0, 450);
         
-        // Pass "4:5" aspect ratio (Meta Ads standard vertical/feed format)
-        // Pass brandKit to ensure we generate on-brand visuals even if baseImage is missing
-        // Pass language explicitly for text generation inside images
-        const resultUrl = await generateCreativeImage(sanitizedPrompt, baseImage, "4:5", composition, p?.brandKit, style, language);
+        // Read requested image count (1, 2, or 3)
+        const imagesCount = Math.max(1, Math.min(3, p?.creativeSettings?.metaImagesCount || 1));
         
-        if (resultUrl) {
+        // Run generation in parallel so user gets different versions quickly
+        const promises = Array.from({ length: imagesCount }).map(() =>
+            generateCreativeImage(sanitizedPrompt, baseImage, "4:5", composition, p?.brandKit, style, language)
+        );
+        
+        const results = await Promise.all(promises);
+        const validUrls = results.filter((url): url is string => !!url);
+        
+        if (validUrls.length > 0) {
             updateProduct(prev => ({ 
-              creatives: prev.creatives.map(c => c.id === creativeId ? { ...c, imageUrl: resultUrl, shotType: composition || c.shotType } : c) 
+              creatives: prev.creatives.map(c => c.id === creativeId ? { 
+                ...c, 
+                imageUrl: validUrls[0], 
+                imageUrls: validUrls, 
+                activeImageIndex: 0,
+                shotType: composition || c.shotType 
+              } : c) 
             }), productId);
         }
     } catch (err: any) {
@@ -1367,6 +1381,7 @@ function App() {
                       onRefreshCanvas={() => handleRefreshMarketPart(activeProduct.id, 'canvas')}
                       onRefreshBrand={() => handleRefreshMarketPart(activeProduct.id, 'brand')}
                       onRefreshPricing={() => handleRefreshMarketPart(activeProduct.id, 'pricing')}
+                      onRefreshCompetitors={() => handleRefreshMarketPart(activeProduct.id, 'competitors')}
                       onDeleteCompetitor={(idx) => {
                           updateProduct(prev => {
                               if (!prev.marketIntel?.competitors) return {};
@@ -1423,6 +1438,7 @@ function App() {
                           if (storyboardId) handleGenerateSceneImageTask(activeProduct.id, storyboardId, num, prompt, base);
                       }} 
                       onFileUpload={(e) => handleFileUpload(e)} 
+                      onImagesPasted={(files) => processNewImages(files, activeProduct.id)}
                       onUpdate={(creatives) => updateProduct({ creatives })} 
                       onUpdateSearchAds={(searchAds) => updateProduct({ searchAds })} 
                       onUpdateStoryboard={(sb) => {

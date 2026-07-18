@@ -84,10 +84,12 @@ export interface DesignDirectorData {
 
 export interface CreativeSettings {
   metaDirection?: string;
+  metaTextLength?: 'tweet' | 'short' | 'medium' | 'long';
   metaShotType?: string;
   metaBaseImage?: string;
   metaBaseImages?: string[];
   metaActiveStyle?: string;
+  metaImagesCount?: number;
   excludeBuyerContext?: boolean;
   searchDirection?: string;
   emailDirection?: string;
@@ -221,6 +223,13 @@ export interface UniqueOffer {
   riskReversal: string; 
   scarcity: string; 
   priceAnchor: string; 
+  moat?: {
+    coreAdvantage: string;
+    whyDefensible: string;
+    whereUnbeatable: string;
+    gapExploited: string;
+    rightToWin?: string;
+  };
 }
 
 export interface MonetizationStrategy {
@@ -498,7 +507,7 @@ export interface LandingPageCopy {
 
 export interface Creative {
   id: string;
-  style: 'Direct-Response' | 'YouTube-Thumbnail' | 'Breaking News' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle' | 'Product-First';
+  style: 'Direct-Response' | 'YouTube-Thumbnail' | 'Breaking News' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle' | 'Product-First' | 'SMS-Mockup' | 'Native-Social';
   hook: string;
   headline: string;
   subheadline: string;
@@ -506,6 +515,8 @@ export interface Creative {
   cta: string;
   visualPrompt: string;
   imageUrl?: string;
+  imageUrls?: string[];
+  activeImageIndex?: number;
   shotType?: string;
   selectedBaseImage?: string; // Legacy
   selectedBaseImages?: string[];

@@ -21,7 +21,7 @@ interface WireframeProps {
 
 // Inline Editable Component
 const EditableElement = ({ 
-    tagName: Tag = 'div',
+    tagName: Tag = 'span',
     text, 
     className = "", 
     onChange,

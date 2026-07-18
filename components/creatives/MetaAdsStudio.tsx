@@ -1,5 +1,5 @@
 import React from 'react';
-import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX } from 'lucide-react';
+import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product, Creative, Language } from '../../types';
 import { getTranslation } from '../../translations';
 
@@ -29,6 +29,11 @@ interface MetaAdsStudioProps {
   excludeBuyerContext?: boolean;
   setExcludeBuyerContext?: (val: boolean) => void;
   setLightboxImage?: (url: string | null) => void;
+  metaImagesCount?: number;
+  onUpdateMetaImagesCount?: (v: number) => void;
+  onImagesPasted?: (files: File[]) => Promise<string | null | undefined>;
+  metaTextLength?: 'tweet' | 'short' | 'medium' | 'long';
+  setMetaTextLength?: (val: 'tweet' | 'short' | 'medium' | 'long') => void;
 }
 
 export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
@@ -36,10 +41,38 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
   customMetaDirection, setCustomMetaDirection, onGenerateCreative, onRefreshText, onGenerateImage,
   onUpdate, handleCopyText, handleDownloadImage, copiedId, FoundationPicker, COMPOSITIONS,
   globalBaseImages, setGlobalBaseImages, globalShotType, setGlobalShotType,
-  excludeBuyerContext, setExcludeBuyerContext, setLightboxImage
+  excludeBuyerContext, setExcludeBuyerContext, setLightboxImage,
+  metaImagesCount = 1, onUpdateMetaImagesCount, onImagesPasted,
+  metaTextLength = 'medium', setMetaTextLength
 }) => {
   const t = getTranslation(language);
   const creatives = Array.isArray(product.creatives) ? product.creatives : [];
+
+  React.useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      if (files.length > 0 && onImagesPasted) {
+        // Prevent default to stop duplicating the image into inputs if an input is focused
+        e.preventDefault();
+        const url = await onImagesPasted(files);
+        if (url) {
+          // If the user pastes an image, we assume they want to use it as the base visual
+          setGlobalBaseImages([...globalBaseImages, url]);
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [globalBaseImages, setGlobalBaseImages, onImagesPasted]);
 
   return (
     <div className="animate-fade-in w-full">
@@ -133,6 +166,46 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
             />
           </div>
 
+          <div className="flex flex-col gap-2 min-w-[100px]">
+             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <Layout size={12} className="text-indigo-500" /> {language === 'pt' ? 'Extensão' : language === 'es' ? 'Longitud' : 'Length'}
+             </label>
+             <div className="relative">
+                <select
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-xs font-bold text-gray-700 outline-none cursor-pointer hover:border-indigo-300 transition-all appearance-none h-[46px]"
+                  value={metaTextLength}
+                  onChange={(e) => setMetaTextLength?.(e.target.value as 'tweet' | 'short' | 'medium' | 'long')}
+                >
+                  <option value="tweet">{language === 'pt' ? 'Tweet (<140)' : language === 'es' ? 'Tweet (<140)' : 'Tweet (<140)'}</option>
+                  <option value="short">{language === 'pt' ? 'Curto' : language === 'es' ? 'Corto' : 'Short'}</option>
+                  <option value="medium">{language === 'pt' ? 'Médio' : language === 'es' ? 'Medio' : 'Medium'}</option>
+                  <option value="long">{language === 'pt' ? 'Longo' : language === 'es' ? 'Largo' : 'Long'}</option>
+                </select>
+                <ChevronRight size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none rotate-90" />
+             </div>
+          </div>
+
+          <div className="flex flex-col gap-2 min-w-[130px]">
+             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <Layout size={12} className="text-indigo-500" /> Imagens / Anúncio
+             </label>
+             <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200 h-[46px] items-center justify-between w-full">
+                {[1, 2, 3].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => onUpdateMetaImagesCount?.(num)}
+                    className={`flex-1 h-full rounded-lg text-xs font-bold transition-all ${
+                      metaImagesCount === num
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    {num}x
+                  </button>
+                ))}
+             </div>
+          </div>
+
           <div className="flex flex-col gap-2 min-w-[200px]">
              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                 <ImageIcon size={12} className="text-indigo-500"/> {t.creativesStep.foundationShot} ({globalBaseImages.length} selected)
@@ -182,7 +255,19 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
           return (
             <div key={creative.id} className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden flex flex-col relative group hover:shadow-2xl transition-all duration-500">
               <div className="p-3 flex items-center justify-between border-b border-gray-50 bg-white/80 backdrop-blur-sm sticky top-0 z-[20]">
-                <div className="flex items-center gap-2 max-w-[70%]"><div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-50 to-purple-50 flex items-center justify-center text-white font-bold text-xs shadow-inner shrink-0">{product.name.charAt(0)}</div><div className="overflow-hidden"><p className="text-xs font-bold text-gray-900 leading-none truncate">{product.name}</p><p className="text-[10px] text-gray-400 mt-1">{t.creativesStep.sponsored}</p></div></div>
+                <div className="flex items-center gap-2 max-w-[70%]">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-50 to-purple-50 flex items-center justify-center text-white font-bold text-xs shadow-inner shrink-0">
+                    {product.name.charAt(0)}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-gray-900 leading-none truncate">{product.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1.5">
+                      <span>{t.creativesStep.sponsored}</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                      <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50/70 px-1.5 py-0.5 rounded tracking-wide">{creative.style}</span>
+                    </p>
+                  </div>
+                </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => handleCopyText(creative)} className={`p-1.5 rounded-lg transition-all ${copiedId === creative.id ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}><Copy size={12} /></button>
                   <button
@@ -205,14 +290,60 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
               </div>
               <div className="aspect-[4/5] bg-gray-50 relative overflow-hidden group/image border-y border-gray-50">
                 {creative.imageUrl ? (
-                  <div className="w-full h-full relative cursor-zoom-in group" onClick={() => setLightboxImage?.(creative.imageUrl!)}>
-                    <img src={creative.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Ad Visual" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                            <Compass size={20} className="text-indigo-600" />
+                  (() => {
+                    const activeIndex = creative.activeImageIndex || 0;
+                    const urlsList = creative.imageUrls && creative.imageUrls.length > 0 ? creative.imageUrls : [creative.imageUrl];
+                    const activeUrl = urlsList[activeIndex] || creative.imageUrl;
+                    const isMulti = urlsList.length > 1;
+
+                    return (
+                      <div className="w-full h-full relative cursor-zoom-in group" onClick={() => setLightboxImage?.(activeUrl)}>
+                        <img src={activeUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Ad Visual" />
+                        
+                        {isMulti && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const prevIdx = (activeIndex - 1 + urlsList.length) % urlsList.length;
+                                onUpdate(creatives.map(c => c.id === creative.id ? { ...c, activeImageIndex: prevIdx } : c));
+                              }}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 shadow-md flex items-center justify-center cursor-pointer"
+                              title="Anterior"
+                            >
+                              <ChevronLeft size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const nextIdx = (activeIndex + 1) % urlsList.length;
+                                onUpdate(creatives.map(c => c.id === creative.id ? { ...c, activeImageIndex: nextIdx } : c));
+                              }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20 shadow-md flex items-center justify-center cursor-pointer"
+                              title="Próxima"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
+
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-[10px] text-white font-bold px-2.5 py-1 rounded-full z-20 flex items-center gap-1.5 shadow-sm">
+                              {urlsList.map((_, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeIndex ? 'bg-indigo-400 scale-125' : 'bg-white/60'}`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                                <Compass size={20} className="text-indigo-600" />
+                            </div>
                         </div>
-                    </div>
-                  </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-end p-8 bg-indigo-50/20"><button onClick={() => onGenerateImage(creative.id, creative.visualPrompt, creativeBase, globalShotType, creative.style)} disabled={isImgLoading} className="bg-indigo-600 text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-gray-900 transition-all flex items-center disabled:opacity-50"><Palette className="mr-2" size={14} />{isImgLoading ? t.common.building : t.creativesStep.craftVisual}</button></div>
                 )}
@@ -220,14 +351,22 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
               </div>
               <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                 {creative.imageUrl ? (
-                    <button 
-                      onClick={() => handleDownloadImage(creative.imageUrl!, `Ad-${creative.id}.png`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0"
-                      title={t.common.download}
-                    >
-                      <Download size={12} />
-                      <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.download}</span>
-                    </button>
+                  (() => {
+                    const activeIndex = creative.activeImageIndex || 0;
+                    const urlsList = creative.imageUrls && creative.imageUrls.length > 0 ? creative.imageUrls : [creative.imageUrl];
+                    const activeUrl = urlsList[activeIndex] || creative.imageUrl;
+
+                    return (
+                      <button 
+                        onClick={() => handleDownloadImage(activeUrl, `Ad-${creative.id}-${activeIndex + 1}.png`)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0"
+                        title={t.common.download}
+                      >
+                        <Download size={12} />
+                        <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.download}</span>
+                      </button>
+                    );
+                  })()
                 ) : (
                     <div className="flex items-center gap-2 text-gray-400">
                         <Video size={12} />

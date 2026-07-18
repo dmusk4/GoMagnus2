@@ -508,9 +508,29 @@ Your style is: Confident, empathetic, and direct.
 - Focus on the "Mechanics of Value": How it works and what it gets them.
 NO MARKETING JARGON: Use human, natural language only.
 LOCALIZATION: Use the specific currency and conventions of the target country.
+
+CRITICAL TEXT LENGTH CONSTRAINTS (NEVER EXCEED - ESSENTIAL TO PREVENT LAYOUT OVERFLOW OR COLLAPSE):
+1. **Headlines (H1, H2, H3, headlines, segment titles, hero titles)**: Must be highly punchy and direct, strictly MAX 8-10 words. NEVER write multi-line run-on sentences as headlines.
+2. **Subtitles & Subheadlines (hero subtitles, section descriptions)**: Strictly MAX 15-20 words. Focus on a single impact-heavy statement.
+3. **Pills & Eyebrows (such as hero eyebrow, badges)**: Strictly MAX 2-4 words.
+4. **All Section Body Paragraphs / Paragraphs**: Strictly MAX 2 short sentences (MAX 30 words total per paragraph). Ensure readability by being ultra-concise.
+5. **Feature/Category/Step Cards**:
+   - Card titles: MAX 3-5 words.
+   - Card descriptions/benefits: MAX 12-15 words. Keep them to a single concise line or action bullet point.
+6. **CTA Buttons**: MAX 2-3 words (e.g., "Start Free", "Book Demo").
+7. **Testimonials**: Keep each quote concise, MAX 2 sentences (MAX 25 words).
+8. **FAQs**: Answer must be MAX 2 sentences (MAX 30 words).
+
+Every word must count. Eliminate all redundant phrasing. Punchy, high-impact, short.
+
 SEMANTIC STRUCTURE: Ensure the copy is structured with logical heading hierarchies (H1, H2, H3).
-KEYWORD INTENT: Naturally weave in high-intent commercial keywords throughout the copy.
-ON-PAGE OPTIMIZATION: Focus on unique value propositions that search engines recognize as high-quality content.
+
+ADVANCED SEO COPYWRITING & ON-PAGE OPTIMIZATION:
+1. Primary Keyword Placement: Ensure the primary search intent keyword naturally appears in the main Hero Headline (H1), at least one Section Title (H2), and within the first 100 words (intro/pain section).
+2. Semantic Variations (LSI Keywords): Use synonyms, related terms, and contextual phrases throughout the body paragraphs and subtitles to build topical authority without keyword stuffing.
+3. Optimal Keyword Density: Maintain a natural, conversational keyword density. Do not force keywords where they break the direct-response copy flow.
+4. High-Intent Commercial Keywords: Integrate transactional and intent-based modifiers naturally where appropriate for the niche.
+5. Readability & UX: Keep sentences short and highly scannable for both humans and search engine crawlers to keep bounce rates low and dwell time high.
 
 FINAL OBJECTIVE:
 Create a landing page that ranks high in relevance for search engines and converts at a high rate for humans.
@@ -571,7 +591,7 @@ CRITICAL AESTHETIC RULE: Favor monochromatic (Slate, Charcoal, Black, Zinc). AVO
                 responseMimeType: "application/json",
                 responseSchema: schema,
                 temperature: 0.7 + (creativityLevel * 0.3),
-                systemInstruction: `És um Copywriter Direct Response de elite. Criar uma narrativa que flui da dor emocional visceral para a solução pragmática e técnica.`
+                systemInstruction: `És um Copywriter Direct Response de elite e Especialista em SEO. Criar uma narrativa que flui da dor emocional visceral para a solução pragmática e técnica, perfeitamente otimizada para motores de busca.`
             }
         });
         
@@ -610,6 +630,12 @@ export const refineLandingPageCopy = async (
     2. KEEP ALL OTHER FIELDS EXACTLY AS THEY ARE in the Current Content. Do not hallucinate new content for fields not mentioned.
     3. Return the full JSON object for this section (or the whole page if no section specified), with the necessary updates applied.
     4. Language: ${getLangName(language)}.
+    5. STRICT LENGTH LIMITS (ESSENTIAL TO PREVENT LAYOUT BLOCK SPEECH/OVERFLOW):
+       - Headlines/Titles: MAX 8-10 words. Must be punchy.
+       - Subtitles: MAX 15-20 words.
+       - Body paragraphs: MAX 2 short sentences (MAX 30 words total).
+       - Features / Cards: Title MAX 3-5 words, Description MAX 12-15 words.
+       - Action buttons: MAX 2-3 words.
     `;
 
     try {

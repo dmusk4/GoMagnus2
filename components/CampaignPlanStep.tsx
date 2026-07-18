@@ -10,6 +10,7 @@ import { Product, CampaignPlan, Language, Lead } from '../types';
 import { getTranslation } from '../translations';
 import { searchRealLeads, VALID_INDUSTRIES } from '../services/leadService';
 import { COUNTRIES, SearchableCountrySelect } from './Common';
+import { generateSingleGrowthHack, regenerateSinglePrompt } from '../services/geminiService';
 
 interface CampaignPlanStepProps {
   product: Product;
@@ -182,6 +183,48 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
   const [growthHackFocus, setGrowthHackFocus] = useState<string>("");
   const [activeAutomationIdx, setActiveAutomationIdx] = useState(0);
   const [isRefreshingSingle, setIsRefreshingSingle] = useState(false);
+  const [isRefreshingAutomationPrompt, setIsRefreshingAutomationPrompt] = useState(false);
+
+  const handleRefreshAutomationPrompt = async (idxToRefresh: number) => {
+    if (!onUpdateProduct || isRefreshingAutomationPrompt) return;
+    setIsRefreshingAutomationPrompt(true);
+    try {
+        const automations = Array.isArray(plan?.growthHackAutomation) ? plan.growthHackAutomation : [plan?.growthHackAutomation];
+        const targetHack = automations[idxToRefresh];
+        if (!targetHack) return;
+
+        const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
+        const campaignContext = plan
+           ? `Direction: ${plan.direction}. Core Message: ${plan.coreMessage}. Goal: ${plan.goal}`
+           : "";
+        const fullContext = `${productContext}\n${campaignContext}`;
+
+        const newPrompt = await regenerateSinglePrompt(
+            fullContext,
+            targetHack.initialPrompt || "",
+            language,
+            'Quality'
+        );
+
+        if (newPrompt) {
+            const copy = [...automations];
+            copy[idxToRefresh] = {
+                ...targetHack,
+                initialPrompt: newPrompt
+            };
+            onUpdateProduct({
+                campaignPlan: {
+                    ...plan!,
+                    growthHackAutomation: copy
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Error refreshing automation prompt:", e);
+    } finally {
+        setIsRefreshingAutomationPrompt(false);
+    }
+  };
 
   const handleRefreshSingleAutomation = async (idxToReplace: number) => {
     if (!onUpdateProduct || isRefreshingSingle) return;
@@ -197,7 +240,6 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
            : "";
         const fullContext = `${productContext}\n${campaignContext}`;
         
-        const { generateSingleGrowthHack } = await import('../services/geminiService');
         const updatedHack = await generateSingleGrowthHack(fullContext, targetHack, language, 'Quality');
         
         if (updatedHack) {
@@ -1050,15 +1092,28 @@ export const CampaignPlanStep: React.FC<CampaignPlanStepProps> = ({
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">{t.campaignPlanStep.growthHack.copyPrompt}</span>
                                         <div className="bg-gray-900 rounded-[2rem] p-8 relative group/code shadow-lg">
                                             <pre className="text-gray-300 font-mono text-sm whitespace-pre-wrap leading-relaxed pb-16">{automation.initialPrompt}</pre>
-                                            <button 
-                                                className="absolute bottom-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(automation.initialPrompt || "");
-                                                }}
-                                                title={t.campaignPlanStep.growthHack.copyPrompt}
-                                            >
-                                                <Copy size={16} /> <span className="text-xs font-bold uppercase tracking-wider">Copy</span>
-                                            </button>
+                                            <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                                                <button 
+                                                    className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2"
+                                                    onClick={() => handleRefreshAutomationPrompt(activeAutomationIdx)}
+                                                    disabled={isRefreshingAutomationPrompt}
+                                                    title={language === 'pt' ? 'Regerar Prompt Final' : 'Regenerate Final Prompt'}
+                                                >
+                                                    <RefreshCw size={16} className={isRefreshingAutomationPrompt ? "animate-spin text-indigo-400" : ""} />
+                                                    <span className="text-xs font-bold uppercase tracking-wider">
+                                                        {isRefreshingAutomationPrompt ? (language === 'pt' ? 'A regerar...' : 'Regenerating...') : (language === 'pt' ? 'Regerar Prompt' : 'Regenerate Prompt')}
+                                                    </span>
+                                                </button>
+                                                <button 
+                                                    className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(automation.initialPrompt || "");
+                                                    }}
+                                                    title={t.campaignPlanStep.growthHack.copyPrompt}
+                                                >
+                                                    <Copy size={16} /> <span className="text-xs font-bold uppercase tracking-wider">Copy</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 

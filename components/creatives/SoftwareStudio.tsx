@@ -4,6 +4,7 @@ import {
   Trash2, Compass, Layers, Check, ExternalLink, HelpCircle 
 } from 'lucide-react';
 import { Product, Language, SoftwareRecommendation } from '../../types';
+import { generateSingleSoftwareRecommendation, regenerateSinglePrompt } from '../../services/geminiService';
 
 interface SoftwareStudioProps {
   product: Product;
@@ -29,6 +30,45 @@ export const SoftwareStudio: React.FC<SoftwareStudioProps> = ({
   const [activeIdx, setActiveIdx] = useState<number>(0);
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
   const [isRefreshingTool, setIsRefreshingTool] = useState<boolean>(false);
+  const [isRefreshingPrompt, setIsRefreshingPrompt] = useState<boolean>(false);
+
+  const handleRefreshPrompt = async (idxToRefresh: number) => {
+    if (isRefreshingPrompt) return;
+    setIsRefreshingPrompt(true);
+    try {
+      const targetTool = recommendations[idxToRefresh];
+      if (!targetTool) return;
+
+      const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
+      const campaignContext = product.campaignPlan 
+        ? `Direction: ${product.campaignPlan.direction}. Core Message: ${product.campaignPlan.coreMessage}` 
+        : "";
+      const fullContext = `${productContext}\n${campaignContext}`;
+
+      const newPrompt = await regenerateSinglePrompt(
+        fullContext,
+        targetTool.initialPrompt,
+        language,
+        'Quality'
+      );
+
+      if (newPrompt) {
+        const copy = [...recommendations];
+        copy[idxToRefresh] = {
+          ...targetTool,
+          initialPrompt: newPrompt
+        };
+        onUpdate({
+          ...product,
+          softwareRecommendations: copy
+        });
+      }
+    } catch (e) {
+      console.error("Error refreshing single prompt:", e);
+    } finally {
+      setIsRefreshingPrompt(false);
+    }
+  };
 
   const handleRefreshSingleTool = async (idxToReplace: number) => {
     if (isRefreshingTool) return;
@@ -42,7 +82,6 @@ export const SoftwareStudio: React.FC<SoftwareStudioProps> = ({
         ? `Direction: ${product.campaignPlan.direction}. Core Message: ${product.campaignPlan.coreMessage}` 
         : "";
 
-      const { generateSingleSoftwareRecommendation } = await import('../../services/geminiService');
       const updatedTool = await generateSingleSoftwareRecommendation(
         productContext,
         campaignContext,
@@ -321,16 +360,29 @@ export const SoftwareStudio: React.FC<SoftwareStudioProps> = ({
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-3">{labels.masterPrompt}</span>
                   <div className="bg-gray-900 rounded-[2.5rem] p-8 relative group shadow-lg text-left overflow-hidden">
                     <pre className="text-gray-300 font-mono text-xs whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto no-scrollbar pb-16">{tool.initialPrompt}</pre>
-                    <button
-                      className="absolute bottom-4 right-4 p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2 shadow"
-                      onClick={() => handleCopyPrompt(tool.initialPrompt)}
-                      title={labels.copyLabel}
-                    >
-                      {copiedPrompt ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                      <span className="text-[10px] font-bold uppercase tracking-wider">
-                        {copiedPrompt ? labels.copiedLabel : labels.copyLabel}
-                      </span>
-                    </button>
+                    <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                      <button
+                        className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2 shadow"
+                        onClick={() => handleRefreshPrompt(currentIdx)}
+                        disabled={isRefreshingPrompt}
+                        title={isPt ? 'Regerar Prompt Final' : 'Regenerate Final Prompt'}
+                      >
+                        <RefreshCw size={16} className={isRefreshingPrompt ? "animate-spin text-indigo-400" : ""} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          {isRefreshingPrompt ? (isPt ? 'A regerar...' : 'Regenerating...') : (isPt ? 'Regerar Prompt' : 'Regenerate Prompt')}
+                        </span>
+                      </button>
+                      <button
+                        className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors backdrop-blur-sm flex items-center gap-2 shadow"
+                        onClick={() => handleCopyPrompt(tool.initialPrompt)}
+                        title={labels.copyLabel}
+                      >
+                        {copiedPrompt ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          {copiedPrompt ? labels.copiedLabel : labels.copyLabel}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

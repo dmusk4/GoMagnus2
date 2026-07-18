@@ -22,6 +22,7 @@ interface MarketIntelStepProps {
   onRefreshCanvas?: () => void;
   onRefreshBrand?: () => void;
   onRefreshPricing?: () => void;
+  onRefreshCompetitors?: () => void;
   onDeleteCompetitor?: (idx: number) => void;
 }
 
@@ -33,7 +34,7 @@ const ensureUrl = (url?: string) => {
 
 export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({ 
     product, language, loading, taskQueue, onRunAnalysis, onSeeMore, onUpdate, onClear, onCancel, error, showValidation = false, validationTrigger = 0,
-    onRefreshPatterns, onRefreshCanvas, onRefreshBrand, onRefreshPricing, onDeleteCompetitor
+    onRefreshPatterns, onRefreshCanvas, onRefreshBrand, onRefreshPricing, onRefreshCompetitors, onDeleteCompetitor
 }) => {
     const intel = product.marketIntel;
     const containerRef = useRef<HTMLDivElement>(null);
@@ -49,7 +50,7 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
     };
 
     const isTaskLoading = (sub: string) => taskQueue.has(`intel-gen-${product.id}-${sub}`);
-    const hasAnyData = intel && ((intel.workingNow && intel.workingNow.length > 0) || (intel.competitors && intel.competitors.length > 0) || intel.leanCanvas || intel.ownBrandInsights);
+    const hasAnyData = !!intel;
     const isMoreLoading = taskQueue.has(`intel-more-${product.id}`);
 
     useEffect(() => {
@@ -190,7 +191,9 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
                  </div>
             </div>
             
-            {intel?.ownBrandInsights ? (
+            {isTaskLoading('brand') ? (
+                <SectionSkeleton title={t.marketIntelStep.brandInsights} />
+            ) : (intel?.ownBrandInsights && intel.ownBrandInsights.positives && intel.ownBrandInsights.negatives) ? (
                 <div className="mb-14 bg-white p-8 rounded-3xl border border-gray-200 shadow-xl relative overflow-hidden group animate-fade-in">
                     <div className="absolute top-0 right-0 p-8 opacity-5"><Star size={120} className="text-indigo-600" /></div>
                     <div className="relative z-10">
@@ -222,15 +225,38 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
                         </div>
                      </div>
                 </div>
-            ) : isTaskLoading('brand') && <SectionSkeleton title={t.marketIntelStep.scanning} />}
-
-            {(intel?.workingNow?.length > 0 || intel?.saturated?.length > 0 || intel?.opportunities?.length > 0) ? (
-                <div className="mb-14 animate-fade-in">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-gray-900">{t.marketIntelStep.analysisTasks.patterns}</h3>
-                        <RefreshButton onClick={onRefreshPatterns} loading={isTaskLoading('patterns')} />
+            ) : (
+                <div className="mb-14 bg-white p-8 rounded-3xl border border-dashed border-gray-300 shadow-sm relative overflow-hidden text-center py-12 animate-fade-in">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+                        <Star size={24} />
                     </div>
-                    <div className={`grid grid-cols-1 md:grid-cols-3 gap-6`}>
+                    <h4 className="font-bold text-gray-900 mb-1">{product.name} {t.marketIntelStep.brandInsights}</h4>
+                    <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                        {language === 'pt' ? 'Insights de Reputação e sentimento não gerados.' : 'Reputation Insights and sentiment could not be generated.'}
+                    </p>
+                    <button 
+                        onClick={onRefreshBrand}
+                        disabled={isTaskLoading('brand')}
+                        className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all animate-pulse-slow"
+                    >
+                        <RefreshCw size={12} className="mr-2" /> {language === 'pt' ? 'Gerar Seção' : 'Generate Section'}
+                    </button>
+                </div>
+            )}
+            
+            <div className="mb-14">
+                <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-2">
+                    <h3 className="text-xl font-bold text-gray-900">{t.marketIntelStep.analysisTasks.patterns}</h3>
+                    <RefreshButton onClick={onRefreshPatterns} loading={isTaskLoading('patterns')} />
+                </div>
+                {isTaskLoading('patterns') ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <SectionSkeleton title="..." />
+                        <SectionSkeleton title="..." />
+                        <SectionSkeleton title="..." />
+                    </div>
+                ) : (intel?.workingNow?.length > 0 || intel?.saturated?.length > 0 || intel?.opportunities?.length > 0) ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
                         <div className="bg-emerald-50 rounded-3xl border border-emerald-100 p-6 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-center space-x-3 mb-5"><div className="p-2.5 bg-white rounded-xl text-emerald-600 shadow-sm"><TrendingUp size={20} /></div><h3 className="font-display font-bold text-gray-900 text-lg">{t.marketIntelStep.winningPatterns}</h3></div>
                             <div className="space-y-2">{intel?.workingNow?.map((item, i) => (<div key={i} className="flex items-center bg-white/80 px-4 py-3 rounded-lg border border-emerald-100 shadow-sm backdrop-blur-sm"><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-3 shrink-0"></span><span className="text-sm font-medium text-gray-800 leading-snug">{item}</span></div>))}</div>
@@ -244,16 +270,34 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
                             <div className="space-y-2">{intel?.opportunities?.map((item, i) => (<div key={i} className="flex items-center bg-white px-4 py-3 rounded-lg border border-indigo-100 shadow-sm ring-1 ring-indigo-500/10"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-3 shrink-0"></span><span className="text-sm font-bold text-gray-900 leading-snug">{item}</span></div>))}</div>
                         </div>
                     </div>
-                </div>
-            ) : isTaskLoading('patterns') && <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14"><SectionSkeleton title="..."/><SectionSkeleton title="..."/><SectionSkeleton title="..."/></div>}
-
-            {intel?.leanCanvas ? (
-                <div className="mb-14 animate-fade-in">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center"><Grid size={20} className="mr-3 text-indigo-500"/> Lean Canvas</h3>
-                        <RefreshButton onClick={onRefreshCanvas} loading={isTaskLoading('canvas')} />
+                ) : (
+                    <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 shadow-sm text-center py-12 animate-fade-in">
+                        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+                            <TrendingUp size={24} />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                            {language === 'pt' ? 'Padrões vencedores e ângulos saturados não gerados.' : 'Winning patterns and saturated angles could not be generated.'}
+                        </p>
+                        <button 
+                            onClick={onRefreshPatterns}
+                            disabled={isTaskLoading('patterns')}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all"
+                        >
+                            <RefreshCw size={12} className="mr-2" /> {language === 'pt' ? 'Gerar Seção' : 'Generate Section'}
+                        </button>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                )}
+            </div>
+
+            <div className="mb-14 text-left">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center"><Grid size={20} className="mr-3 text-indigo-500"/> Lean Canvas</h3>
+                    <RefreshButton onClick={onRefreshCanvas} loading={isTaskLoading('canvas')} />
+                </div>
+                {isTaskLoading('canvas') ? (
+                    <SectionSkeleton title="Lean Canvas" height="h-64" />
+                ) : intel?.leanCanvas ? (
+                    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in">
                         <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200 border-b border-gray-200">
                             <div className="p-5 md:col-span-1"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Problem</h4><p className="text-sm text-gray-700 leading-relaxed">{intel.leanCanvas.problem}</p></div>
                             <div className="p-5 md:col-span-1"><h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Solution</h4><p className="text-sm text-gray-700 leading-relaxed">{intel.leanCanvas.solution}</p></div>
@@ -270,106 +314,154 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
                             <div className="p-5 bg-green-50/30"><h4 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-2">Revenue Streams</h4><p className="text-sm text-gray-900 font-bold leading-relaxed">{intel.leanCanvas.revenueStreams}</p></div>
                         </div>
                     </div>
-                </div>
-            ) : isTaskLoading('canvas') && <SectionSkeleton title="Lean Canvas" height="h-64" />}
+                ) : (
+                    <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 shadow-sm text-center py-12 animate-fade-in">
+                        <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+                            <Grid size={24} />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                            {language === 'pt' ? 'Lean Canvas estratégico não gerado.' : 'Strategic Lean Canvas could not be generated.'}
+                        </p>
+                        <button 
+                            onClick={onRefreshCanvas}
+                            disabled={isTaskLoading('canvas')}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all"
+                        >
+                            <RefreshCw size={12} className="mr-2" /> {language === 'pt' ? 'Gerar Seção' : 'Generate Section'}
+                        </button>
+                    </div>
+                )}
+            </div>
 
-            {intel?.pricingSuggestions ? (
-              <div className="mb-14 animate-fade-in space-y-8">
+            <div className="mb-14">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-gray-900 flex items-center"><DollarSign size={20} className="mr-3 text-indigo-500"/> {t.marketIntelStep.pricingTitle}</h3>
                     <RefreshButton onClick={onRefreshPricing} loading={isTaskLoading('pricing')} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none"><ArrowDownCircle size={80} className="text-indigo-600" /></div>
-                    <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">{t.marketIntelStep.economy}</div>
-                    <h4 className="text-2xl font-bold text-gray-900 mb-2">{t.marketIntelStep.sameForLess}</h4>
-                    <p className="text-3xl font-display font-bold text-indigo-600 mb-4">{intel.pricingSuggestions.sameForLess.price}</p>
-                    <p className="text-sm text-gray-600 leading-relaxed italic">"{intel.pricingSuggestions.sameForLess.logic}"</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-3xl border border-transparent shadow-xl relative overflow-hidden group text-white">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none"><ArrowUpCircle size={80} className="text-white" /></div>
-                    <div className="inline-flex items-center px-3 py-1 bg-white/20 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">{t.marketIntelStep.recommended}</div>
-                    <h4 className="text-2xl font-bold mb-2">{t.marketIntelStep.moreForSame}</h4>
-                    <p className="text-3xl font-display font-bold mb-4">{intel.pricingSuggestions.moreForSame.price}</p>
-                    <p className="text-sm text-white/80 leading-relaxed mb-6 italic">"{intel.pricingSuggestions.moreForSame.logic}"</p>
-                    {intel.pricingSuggestions.moreForSame.valueAdd && (
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">{t.marketIntelStep.bonusValue}:</p>
-                        {intel.pricingSuggestions.moreForSame.valueAdd.map((add, idx) => (
-                          <div key={idx} className="flex items-center text-sm font-medium">
-                            <CheckCircle2 size={14} className="mr-2 text-emerald-400 shrink-0" /> {add}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* New Monetization & Discount Section */}
-                {intel.pricingSuggestions.monetization && (
-                    <div className="animate-slide-up">
-                        <h3 className="text-lg font-bold text-gray-900 flex items-center mb-6"><TrendingUp size={18} className="mr-2 text-indigo-500"/> {t.marketIntelStep.monetizationTitle}</h3>
+                {isTaskLoading('pricing') ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <SectionSkeleton title={t.marketIntelStep.pricingTitle} />
+                    </div>
+                ) : intel?.pricingSuggestions ? (
+                    <div className="space-y-8 animate-fade-in text-left">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Discount Strategy */}
-                            <div className="bg-amber-50 p-8 rounded-3xl border border-amber-100 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-4 right-4 text-amber-200/50"><Percent size={100} /></div>
-                                <h4 className="text-base font-bold text-amber-900 mb-6 flex items-center gap-2 relative z-10"><Tag size={16} /> {t.marketIntelStep.discountStrategy}</h4>
-                                <div className="space-y-5 relative z-10">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.whenToDiscount}</p>
-                                        <p className="text-sm font-bold text-amber-900">{intel.pricingSuggestions.monetization.discountStrategy.when}</p>
-                                    </div>
-                                    <div className="flex gap-6">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.discountAmount}</p>
-                                            <p className="text-lg font-black text-amber-700">{intel.pricingSuggestions.monetization.discountStrategy.amount}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.discountAudience}</p>
-                                            <p className="text-sm font-bold text-amber-900">{intel.pricingSuggestions.monetization.discountStrategy.audience}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Monetization Opportunities */}
-                            <div className="bg-blue-50 p-8 rounded-3xl border border-blue-100 shadow-sm relative overflow-hidden">
-                                <div className="absolute top-4 right-4 text-blue-200/50"><Layers size={100} /></div>
-                                <h4 className="text-base font-bold text-blue-900 mb-6 flex items-center gap-2 relative z-10"><TrendingUp size={16} /> {t.marketIntelStep.monetizationOps}</h4>
-                                <div className="space-y-5 relative z-10">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">{t.marketIntelStep.upsells}</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {intel.pricingSuggestions.monetization.opportunities.upsells.map((op, i) => (
-                                                <span key={i} className="px-2.5 py-1 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 shadow-sm">{op}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">{t.marketIntelStep.crossSells}</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {intel.pricingSuggestions.monetization.opportunities.crossSells.map((op, i) => (
-                                                <span key={i} className="px-2.5 py-1 bg-white border border-blue-100 rounded-lg text-xs font-medium text-blue-600 shadow-sm">{op}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="pt-2 border-t border-blue-100/50">
-                                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Sliders size={10} /> {t.marketIntelStep.usageBased}</p>
-                                        <p className="text-xs font-medium text-blue-800 italic">"{intel.pricingSuggestions.monetization.opportunities.usageBased}"</p>
-                                    </div>
-                                </div>
-                            </div>
+                          <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none"><ArrowDownCircle size={80} className="text-indigo-600" /></div>
+                            <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">{t.marketIntelStep.economy}</div>
+                            <h4 className="text-2xl font-bold text-gray-900 mb-2">{t.marketIntelStep.sameForLess}</h4>
+                            <p className="text-3xl font-display font-bold text-indigo-600 mb-4">{intel.pricingSuggestions.sameForLess.price}</p>
+                            <p className="text-sm text-gray-600 leading-relaxed italic">"{intel.pricingSuggestions.sameForLess.logic}"</p>
+                          </div>
+                          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-3xl border border-transparent shadow-xl relative overflow-hidden group text-white">
+                            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none"><ArrowUpCircle size={80} className="text-white" /></div>
+                            <div className="inline-flex items-center px-3 py-1 bg-white/20 text-white text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">{t.marketIntelStep.recommended}</div>
+                            <h4 className="text-2xl font-bold mb-2">{t.marketIntelStep.moreForSame}</h4>
+                            <p className="text-3xl font-display font-bold mb-4">{intel.pricingSuggestions.moreForSame.price}</p>
+                            <p className="text-sm text-white/80 leading-relaxed mb-6 italic">"{intel.pricingSuggestions.moreForSame.logic}"</p>
+                            {intel.pricingSuggestions.moreForSame.valueAdd && (
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-200">{t.marketIntelStep.bonusValue}:</p>
+                                {intel.pricingSuggestions.moreForSame.valueAdd.map((add, idx) => (
+                                  <div key={idx} className="flex items-center text-sm font-medium">
+                                    <CheckCircle2 size={14} className="mr-2 text-emerald-400 shrink-0" /> {add}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
+
+                        {/* New Monetization & Discount Section */}
+                        {intel.pricingSuggestions.monetization && (
+                            <div className="animate-slide-up">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center mb-6"><TrendingUp size={18} className="mr-2 text-indigo-500"/> {t.marketIntelStep.monetizationTitle}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Discount Strategy */}
+                                    <div className="bg-amber-50 p-8 rounded-3xl border border-amber-100 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-4 right-4 text-amber-200/50"><Percent size={100} /></div>
+                                        <h4 className="text-base font-bold text-amber-900 mb-6 flex items-center gap-2 relative z-10"><Tag size={16} /> {t.marketIntelStep.discountStrategy}</h4>
+                                        <div className="space-y-5 relative z-10">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.whenToDiscount}</p>
+                                                <p className="text-sm font-bold text-amber-900">{intel.pricingSuggestions.monetization.discountStrategy.when}</p>
+                                            </div>
+                                            <div className="flex gap-6">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.discountAmount}</p>
+                                                    <p className="text-lg font-black text-amber-700">{intel.pricingSuggestions.monetization.discountStrategy.amount}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">{t.marketIntelStep.discountAudience}</p>
+                                                    <p className="text-sm font-bold text-amber-900">{intel.pricingSuggestions.monetization.discountStrategy.audience}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Monetization Opportunities */}
+                                    <div className="bg-blue-50 p-8 rounded-3xl border border-blue-100 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-4 right-4 text-blue-200/50"><Layers size={100} /></div>
+                                        <h4 className="text-base font-bold text-blue-900 mb-6 flex items-center gap-2 relative z-10"><TrendingUp size={16} /> {t.marketIntelStep.monetizationOps}</h4>
+                                        <div className="space-y-5 relative z-10">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">{t.marketIntelStep.upsells}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {intel.pricingSuggestions.monetization.opportunities.upsells.map((op, i) => (
+                                                        <span key={i} className="px-2.5 py-1 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 shadow-sm">{op}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">{t.marketIntelStep.crossSells}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {intel.pricingSuggestions.monetization.opportunities.crossSells.map((op, i) => (
+                                                        <span key={i} className="px-2.5 py-1 bg-white border border-blue-100 rounded-lg text-xs font-medium text-blue-600 shadow-sm">{op}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="pt-2 border-t border-blue-100/50">
+                                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Sliders size={10} /> {t.marketIntelStep.usageBased}</p>
+                                                <p className="text-xs font-medium text-blue-800 italic">"{intel.pricingSuggestions.monetization.opportunities.usageBased}"</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 shadow-sm text-center py-12 animate-fade-in">
+                        <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+                            <DollarSign size={24} />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                            {language === 'pt' ? 'Sugestões de precificação e estratégias de monetização não geradas.' : 'Pricing and monetization suggestions could not be generated.'}
+                        </p>
+                        <button 
+                            onClick={onRefreshPricing}
+                            disabled={isTaskLoading('pricing')}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all"
+                        >
+                            <RefreshCw size={12} className="mr-2" /> {language === 'pt' ? 'Gerar Seção' : 'Generate Section'}
+                        </button>
                     </div>
                 )}
-              </div>
-            ) : isTaskLoading('pricing') && <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-14"><SectionSkeleton title={t.marketIntelStep.pricingTitle} /></div>}
+            </div>
 
-            {intel?.competitors && intel.competitors.length > 0 ? (
-                <div className="animate-fade-in w-full">
-                    <div className="flex items-center justify-between mb-6"><h3 className="text-xl font-bold text-gray-900 flex items-center"><Globe size={20} className="mr-3 text-indigo-500"/> {t.marketIntelStep.competitorRadar} ({product.location})</h3></div>
-                    <div className={`grid grid-cols-1 gap-12`}>
+            <div className="mb-14">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                        <Globe size={20} className="mr-3 text-indigo-500"/> {t.marketIntelStep.competitorRadar} ({product.location})
+                    </h3>
+                    <RefreshButton onClick={onRefreshCompetitors} loading={isTaskLoading('competitors')} />
+                </div>
+                {isTaskLoading('competitors') ? (
+                    <div className="space-y-12 w-full">
+                        <SectionSkeleton title="..." height="h-96"/>
+                        <SectionSkeleton title="..." height="h-96"/>
+                    </div>
+                ) : intel?.competitors && intel.competitors.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-12 animate-fade-in w-full text-left">
                         {intel.competitors.map((comp, idx) => (
                             <div key={idx} className="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-sm hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 flex flex-col gap-6 relative group">
                                 {onDeleteCompetitor && (
@@ -441,24 +533,42 @@ export const MarketIntelStep: React.FC<MarketIntelStepProps> = ({
                             </div>
                         ))}
                     </div>
-                    
-                    {error && (
-                        <div className="mt-8 flex justify-center animate-fade-in">
-                            <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-medium shadow-sm">
-                                <AlertTriangle size={16} />
-                                {error}
-                            </div>
+                ) : (
+                    <div className="bg-white p-8 rounded-3xl border border-dashed border-gray-300 shadow-sm text-center py-12 animate-fade-in">
+                        <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+                            <Globe size={24} />
                         </div>
-                    )}
+                        <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                            {language === 'pt' ? 'Mapeamento de concorrentes não gerado.' : 'Competitors mapping could not be generated.'}
+                        </p>
+                        <button 
+                            onClick={onRefreshCompetitors}
+                            disabled={isTaskLoading('competitors')}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow transition-all"
+                        >
+                            <RefreshCw size={12} className="mr-2" /> {language === 'pt' ? 'Gerar Seção' : 'Generate Section'}
+                        </button>
+                    </div>
+                )}
+                
+                {error && (
+                    <div className="mt-8 flex justify-center animate-fade-in">
+                        <div className="bg-red-50 border border-red-200 text-red-600 px-6 py-3 rounded-xl flex items-center gap-2 text-sm font-medium shadow-sm">
+                            <AlertTriangle size={16} />
+                            {error}
+                        </div>
+                    </div>
+                )}
 
+                {(intel?.competitors && intel.competitors.length > 0) && (
                     <div className="mt-8 flex justify-center">
                         <button onClick={onSeeMore} disabled={isMoreLoading} className="flex items-center space-x-2 px-10 py-4 rounded-full bg-white border border-gray-200 text-gray-600 font-bold text-base hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-xl active:scale-95 disabled:opacity-50">
                             {isMoreLoading ? <Loader2 size={18} className="animate-spin" /> : <ChevronDown size={18} />}
                             <span>{isMoreLoading ? t.common.building : t.marketIntelStep.discoverMore}</span>
                         </button>
                     </div>
-                </div>
-            ) : isTaskLoading('competitors') && <div className="space-y-12 w-full"><SectionSkeleton title="..." height="h-96"/><SectionSkeleton title="..." height="h-96"/></div>}
+                )}
+            </div>
         </div>
     )
 }

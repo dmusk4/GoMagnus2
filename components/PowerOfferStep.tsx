@@ -249,6 +249,103 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
                     </div>
                     {idea ? (
                       <div className="space-y-6 animate-fade-in w-full">
+                          {offer?.moat && (
+                              <div id="moat-card" className="bg-gradient-to-br from-amber-500/5 via-amber-500/2 to-transparent p-8 rounded-3xl border border-amber-500/20 shadow-xl relative overflow-hidden group">
+                                  <div className="absolute top-0 right-0 p-8 opacity-5 transform group-hover:scale-110 transition-transform duration-500">
+                                      <Shield size={160} className="text-amber-600" />
+                                  </div>
+                                  <div className="relative z-10 space-y-6">
+                                      {/* Header */}
+                                      <div className="flex items-center space-x-2 mb-2 pb-4 border-b border-gray-100">
+                                          <div id="moat-icon-badge" className="p-2 bg-amber-500/15 rounded-xl text-amber-700">
+                                              <Shield size={22} className="stroke-[2.5]" />
+                                          </div>
+                                          <div>
+                                              <h3 className="text-xl font-bold text-gray-900 tracking-tight leading-none">{t.offerStep.moatTitle}</h3>
+                                          </div>
+                                      </div>
+
+                                      {/* Grid Layout: Offense vs. Defense */}
+                                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                          {/* RIGHT TO WIN (Offense) - 5 columns */}
+                                          <div className="lg:col-span-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/15 p-6 rounded-2xl border border-emerald-500/20 shadow-sm space-y-4">
+                                              <div>
+                                                  <div className="flex items-center gap-1.5 mb-2">
+                                                      <div className="p-1 bg-emerald-500/25 rounded-md text-emerald-800">
+                                                          <Zap size={14} className="fill-emerald-800" />
+                                                      </div>
+                                                      <h4 className="text-sm font-extrabold text-emerald-950 uppercase tracking-wider">
+                                                          {(t.offerStep as any).moatOffenseHeader || "Ataque (Right to Win)"}
+                                                      </h4>
+                                                  </div>
+                                                  <p className="text-xs text-emerald-800/80 leading-relaxed mb-4 font-medium text-left">
+                                                      {(t.offerStep as any).moatOffenseSub || "Why customers choose you over alternatives right now."}
+                                                  </p>
+                                                  {offer.moat.rightToWin && (
+                                                      <div className="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-emerald-200/50 shadow-sm">
+                                                          <p className="text-sm text-gray-900 leading-relaxed font-bold italic text-left">
+                                                              "{offer.moat.rightToWin}"
+                                                          </p>
+                                                      </div>
+                                                  )}
+                                              </div>
+                                          </div>
+
+                                          {/* MOAT (Defense) - 7 columns */}
+                                          <div className="lg:col-span-7 bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-amber-200/40 shadow-sm space-y-4">
+                                              <div>
+                                                  <div className="flex items-center gap-1.5 mb-2">
+                                                      <div className="p-1 bg-amber-500/20 rounded-md text-amber-800">
+                                                          <Shield size={14} />
+                                                      </div>
+                                                      <h4 className="text-sm font-extrabold text-amber-950 uppercase tracking-wider">
+                                                          {(t.offerStep as any).moatDefenseHeader || "Defesa (Estratégia MOAT)"}
+                                                      </h4>
+                                                  </div>
+                                                  <p className="text-xs text-amber-900/80 leading-relaxed mb-4 font-medium text-left">
+                                                      {(t.offerStep as any).moatDefenseSub || "The compounding, sustainable structural barrier protecting profits long-term."}
+                                                  </p>
+                                              </div>
+
+                                              <div className="space-y-3">
+                                                  {/* Core Advantage */}
+                                                  <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-200/30 text-left">
+                                                      <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                                                          {t.offerStep.moatCoreAdvantage}
+                                                      </span>
+                                                      <p className="text-gray-900 font-bold text-sm leading-relaxed">{offer.moat.coreAdvantage}</p>
+                                                  </div>
+
+                                                  {/* Grid items */}
+                                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                                                      <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-100">
+                                                          <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block mb-1">
+                                                              {t.offerStep.moatWhyDefensible}
+                                                          </span>
+                                                          <p className="text-xs text-gray-700 leading-relaxed font-semibold">{offer.moat.whyDefensible}</p>
+                                                      </div>
+                                                      <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-100">
+                                                          <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block mb-1">
+                                                              {t.offerStep.moatWhereUnbeatable}
+                                                          </span>
+                                                          <p className="text-xs text-gray-700 leading-relaxed font-semibold">{offer.moat.whereUnbeatable}</p>
+                                                      </div>
+                                                  </div>
+
+                                                  {/* Gap exploited */}
+                                                  <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-200/20 text-left">
+                                                      <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                                                          {t.offerStep.moatGapExploited}
+                                                      </span>
+                                                      <p className="text-xs text-gray-800 font-semibold leading-relaxed">{offer.moat.gapExploited}</p>
+                                                  </div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+
                           <div className="bg-gradient-to-br from-indigo-50 via-white to-white p-8 rounded-3xl border border-indigo-100 shadow-xl shadow-indigo-100/40 relative overflow-hidden group hover:border-indigo-200 transition-all">
                               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-100 to-transparent opacity-30 rounded-full blur-3xl -mt-20 -mr-20 pointer-events-none"></div>
                               <div className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center"><Zap size={14} className="mr-1 fill-indigo-600"/> {t.offerStep.uniqueMechanism}</div>

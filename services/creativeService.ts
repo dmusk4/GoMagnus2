@@ -45,6 +45,43 @@ export const generateCreativeText = async (context: string, style: string, locat
     } catch (e) { return null; }
 };
 
+const cropImageCenter = (base64: string, targetAspectRatio: number): Promise<string> => {
+    return new Promise((resolve) => {
+        const img = new window.Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(base64);
+
+            let sourceWidth = img.width;
+            let sourceHeight = img.height;
+            let targetWidth = sourceWidth;
+            let targetHeight = sourceHeight;
+
+            const currentRatio = sourceWidth / sourceHeight;
+            
+            if (currentRatio > targetAspectRatio) {
+                // Image is wider than target, crop width
+                targetWidth = sourceHeight * targetAspectRatio;
+            } else {
+                // Image is taller than target, crop height
+                targetHeight = sourceWidth / targetAspectRatio;
+            }
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            const startX = (sourceWidth - targetWidth) / 2;
+            const startY = (sourceHeight - targetHeight) / 2;
+
+            ctx.drawImage(img, startX, startY, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(base64);
+        img.src = base64;
+    });
+};
+
 export const generateCreativeImage = async (
     prompt: string, 
     baseImages?: string | string[], 
@@ -100,7 +137,11 @@ export const generateCreativeImage = async (
                 if (response.candidates?.[0]?.content?.parts) {
                     for (const part of response.candidates[0].content.parts) {
                         if (part.inlineData?.data) {
-                            return `data:image/png;base64,${part.inlineData.data}`;
+                            let resultBase64 = `data:image/png;base64,${part.inlineData.data}`;
+                            if (aspectRatio === "4:5" || aspectRatio === "4x5") {
+                                resultBase64 = await cropImageCenter(resultBase64, 4/5);
+                            }
+                            return resultBase64;
                         }
                     }
                 }
@@ -524,4 +565,40 @@ export const generateSingleSoftwareRecommendation = async (
         return null;
     }
 };
+
+export const regenerateSinglePrompt = async (
+    fullContext: string,
+    currentPrompt: string,
+    language: Language,
+    mode: GenerationMode
+): Promise<string | null> => {
+    const ai = getAI();
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: `You are an elite AI Architect and Senior Systems Prompt Engineer.
+            Your task is to take an existing AI system/orchestration prompt and completely rewrite and expand it to be FAR MORE descriptive, comprehensive, and highly-optimized.
+            
+            PRODUCT/CAMPAIGN CONTEXT:
+            ${fullContext}
+            
+            CURRENT PROMPT TO ENHANCE:
+            """
+            ${currentPrompt}
+            """
+            
+            CRITICAL GUIDELINES:
+            1. Keep the same core intent and goal of the original prompt, but make it extremely detailed, tactical, and robust.
+            2. Add explicit step-by-step guidance, input specifications, expected output formats, constraints (no placeholders, etc.), and quality benchmarks.
+            3. Optimize the prompt phrasing so it is highly descriptive and produces maximum performance when executed by an LLM or sub-agents.
+            4. Respond in Portuguese (Portugal) if language is 'pt', Spanish (Castellano) if 'es', or English (US) otherwise.
+            5. Provide ONLY the final rewritten, enhanced prompt as plain text. Do not wrap it in JSON, markdown code blocks, or include any preamble/meta-commentary. Return ONLY the enhanced prompt.`,
+        });
+        return response.text ? response.text.trim() : null;
+    } catch (e) {
+        console.error("Failed to regenerate single prompt", e);
+        return null;
+    }
+};
+
 

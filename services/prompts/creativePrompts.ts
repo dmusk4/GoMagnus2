@@ -34,8 +34,18 @@ export const buildMetaAdPrompt = (
       specificInstruction = "PRODUCT-FIRST FOCUS: Your goal is to write a perfect ad copy focusing 100% on the product itself. Keep it extremely pragmatic, short, direct, and written at a 4th grade level (simple vocabulary, short sentences, direct statements, objective and easy to read). Highlight direct utility, features, and specs clearly. No complex metaphors, stories, or emotional fluff.";
   } else if (style === 'Storytelling') {
       specificInstruction = "STORYTELLING FOCUS: Weave a captivating narrative context, starting with an immersive story hook that puts the reader in a high-stakes scenario. Build tension and reveal the product naturally as the hero/solution of the story.";
+  } else if (style === 'Versus') {
+      specificInstruction = "VERSUS FOCUS: Compare this product directly with a traditional, expensive alternative side-by-side. Focus on explaining how our clone/alternative delivers equivalent or superior results with massive value, superior practicality, or premium features, without using numeric pricing.";
   } else if (style === 'Product-Hero' || style === 'Minimalist') {
       specificInstruction = "PRAGMATIC. Focus 100% on technical features, design, and direct utility. Ignore emotional hooks.";
+  } else if (style === 'SMS-Mockup') {
+      specificInstruction = "SMS-MOCKUP FOCUS: SMS notification format (personal 1:1 conversation). Create an ad that mimics an incoming personal text message on a smartphone. Write a sender name in the 'headline' field (e.g., 'Wifey', 'Mãe', 'Amigo', 'Cliente', 'Boss'). In the 'subheadline' field, write the actual short text message content (under 35 characters) that triggers extreme curiosity or urgency (e.g. 'Temos de falar disto urgentemente...' or 'Tens de ver isto agora!'). In the 'caption' field, write a highly personal, raw, direct message from 'tu' to a friend sharing the secret discovery of the product. The 'hook' should be conversational, casual, and direct.";
+  } else if (style === 'Secret Info') {
+      specificInstruction = "SECRET INFO / REVEAL FOCUS: Mimic high-authority leaked information or secret reports. Create copy with a massive curiosity gap. The headline should present a 'reveal' or 'leaked' style statement (e.g., 'Metodologia secreta revelada...', 'O segredo de X revelado...', 'Mapa secreto de...'). The text must imply proprietary data, a chart, a graph, a map, or a crucial document screenshot that is being uncovered. Avoid generic sales copy; make it feel exclusive, secret, and authoritative.";
+  } else if (style === 'Native-Social') {
+      specificInstruction = "NATIVE SOCIAL POST FOCUS: Mimic the dominant style of major news or gossip pages on Meta.  The headline must be written in a dramatic, punchy news/gossip/community style (e.g. 'INFAMOUS X SHARES Y VIRAL HACKS', 'REVELADO: O NOVO MÉTODO QUE...'). CRITICAL: Do NOT use or repeat generic clickbait clichés like 'chocante', 'alerta', or 'urgente' in the headline. The primary text should look like an organic public announcement or a social gossip report, using casual, bold language that completely bypasses ad blindness.";
+  } else if (style === 'Humor') {
+      specificInstruction = "Create a split-screen comparison copy that directly addresses the competitor/alternative while praising our product. The 'headline' should be a pattern interrupt scroll stopping statement. The 'subheadline' should be a punchline.";
   } else {
       specificInstruction = "ICP-FOCUSED. Use empathy, pain points, desires, and psychological transformation. Focus 100% on potential psychological triggers derived from the product description.";
   }
@@ -59,13 +69,20 @@ export const buildMetaAdPrompt = (
   2. Não uses placeholders. Escreve texto final pronto para publicar.
   3. REGRAS DE TRATAMENTO OBRIGATÓRIO: Dirige-te ao utilizador estritamente por "TU". NÃO uses "Você".
   4. RESTRIÇÃO DE ESPAÇO: 
+  5. RESTRICÕES DE CAMPO: "headline" deve conter apenas o nome do remetente (e.g. 'Wifey 💬', 'Mãe 🧑') e "subheadline" deve ser a mensagem de texto SMS curta e instigante.
      - "headline": ${style === 'YouTube-Thumbnail' ? 'Máximo 3/4 palavras. Muito curto e chocante (ex: "Fiz isto durante 30 dias!", "O segredo revelado!").' : 'Máximo 35 caracteres.'}
      - "subheadline": ${style === 'YouTube-Thumbnail' ? 'Máximo 25 caracteres.' : 'Máximo 40 caracteres.'}
   
-  ${style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  ${style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'Direct-Response' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Native-Social' && style !== 'Humor' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST start exactly with: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual, " followed by a description of the scene in a realistic, amateur, and candid setting. Never describe generic commercial studio setups, stock photos, clean-cut vectors, or 3D renderings.` : style === 'Product-First' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe a high-quality professional product photography setup. The "visualPrompt" field MUST start exactly with: "fotografia de alta qualidade do produto, tirada numa canon eos r50, lente 85mm com shallow depth of field, iluminação de estúdio profissional, cinematic, fundo clean sem ruído, " followed by a description of the product in a pristine and elegant studio setting. Do NOT include or describe any text, lettering, or overlays on the image itself. The prompt description must contain exactly zero text overlay instructions. Keep it strictly visual.` : style === 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
-  The "visualPrompt" field MUST describe an epic, high-end cinematic Hollywood scene. The "visualPrompt" field MUST start exactly with: "foto cinematográfica estilo hollywood, ângulo inclinado de dutch angle dramático, iluminação de estúdio estilosa com alto contraste, cores premium com tonalidades teal e orange e sombras profundas, composição dinâmica e elegante, " followed by a storytelling scene description that matches the core narrative.` : ''}`;
+  The "visualPrompt" field MUST describe an epic, high-end cinematic Hollywood scene. The "visualPrompt" field MUST start exactly with: "foto cinematográfica estilo hollywood, ângulo inclinado de dutch angle dramático, iluminação de estúdio estilosa com alto contraste, cores premium com tonalidades teal e orange e sombras profundas, composition dinâmica e elegante, " followed by a storytelling scene description that matches the core narrative.` : style === 'Versus' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a highly polished side-by-side comparison layout. The "visualPrompt" field MUST start exactly with: "foto de comparação lado a lado de dois produtos, split-screen split vertical, fundo limpo de estúdio com tom cinza suave na esquerda e tom creme suave na direita, com um distintivo circular preto minimalista no centro contendo o texto 'VS' escrito de forma limpa, no lado esquerdo uma embalagem premium mas tradicional de concorrente caro, and no lado direito o nosso produto como alternativa inovadora e moderna de alta qualidade, " followed by a detailed visual comparison describing our product on the right and the expensive version on the left. CRITICAL: Do NOT show any prices, pricing symbols, currency signs, or dollar/euro amounts anywhere on the image. Keep all text labels extremely brief (under 3 words per label), clean, highly legible and sophisticated, showing red cross icons on the left list and green checkmark icons on the right list.` : style === 'Short-Human' || style === 'Direct-Response' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe an ultra-realistic, high-impact advertising image with a smiling model interacting with the product. The "visualPrompt" field MUST start exactly with: "foto publicitária de alta qualidade e impacto, plano aberto com perspectiva de lente grande angular dramática, iluminação de estúdio profissional limpa e de alto contraste focalizando a expressão sincera do modelo sorrindo de forma natural, com o modelo interagindo fisicamente com e segurando o produto, " followed by a detailed description of the scene highlighting the authentic smiling model, product contact, wardrobe styling, and premium environment.` : style === 'SMS-Mockup' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a realistic iOS/Android SMS message popup mockup. The "visualPrompt" field MUST start exactly with: "a raw unedited candid iPhone photo of a real person smiling or a realistic lifestyle scene, overlaid in the upper center with a pristine semi-transparent white iOS-style SMS text message notification popup card with rounded corners, a green message app icon, a 'MESSAGES' header on the left and 'now' on the right, displaying a bold sender name and the text message text in quotes, " followed by a detailed description of the background lifestyle scene and the specific text message overlay content.` : style === 'Secret Info' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a secret reveal or leak layout with an inset. The "visualPrompt" field MUST start exactly with: "foto de estilo relatório confidencial ou revelação secreta, plano de fundo com uma foto aérea ou foto realista do cenário, com um overlay semitransparente contendo um mapa esquemático detalhado, um gráfico científico ou um screenshot de documento analítico em destaque no canto superior direito, com uma faixa ou badge preta marcante na parte inferior escrito REVEALED de forma limpa, " followed by a description of the background scene, the specific map or chart details, and the product being revealed.` : style === 'Native-Social' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe an organic social media news post format. The "visualPrompt" field MUST start exactly with: "foto natural estilo publicação de notícias das redes sociais, uma imagem principal de alta qualidade de uma pessoa de frente ou de um cenário real, com uma imagem circular secundária embutida no canto superior direito mostrando um detalhe do produto ou pessoa focada, e uma faixa ou caixa escura na base da imagem com um título em letras brancas maiúsculas e negrito no estilo notícia de impacto, " followed by a detailed description of the main person, the circle inset content, the product, and the bold headline text (do NOT use or repeat clickbait words like 'chocante' or 'alerta' in the headline text).` : style === 'Humor' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a split-screen comparison layout. The "visualPrompt" field MUST start exactly with: "foto de comparação lado a lado, split-screen vertical claramente dividido ao meio. Uma cor de fundo vibrante e limpa na esquerda (adequada ao contexto do produto) e uma cor de fundo escura contrastante na direita. No lado esquerdo, o nosso produto ou a solução ideal com uma seta estilizada e texto positivo. No lado direito, uma alternativa comum ou produto tradicional relacionado ao mesmo nicho (por exemplo, se o produto é comida fresca para cães, o lado direito é ração seca), com texto descontraído, " followed by a description of the two distinct objects/scenarios, background colors suitable for the context, and the specific short text labels. Ensure the text labels are relatable and lighthearted, completely avoiding overly negative, aggressive, or sarcastic words like 'lixo' or 'trash'.` : ''}`;
 };
 
 // --- Image Generation ---
@@ -82,36 +99,15 @@ export const buildCreativeImagePrompt = (
 
   if (style === 'Direct-Response') {
     styleRules = `
-    High-Converting Instagram Image Ad
-    ROLE
-    Create a static Instagram ad that instantly stops scrolling, triggers emotion and communicates a clear, strong value proposition.
-    ${hasBaseImages ? 'The design must follow the visual style of the reference image (colors, fonts, shapes, background, composition and mood).' : ''}
+    Create an ultra-realistic, high-impact taken from iphone photo advertising image using the provided product reference image as the absolute visual truth. Preserve the products exact design, colors, materials, proportions, shape, finish, texture and visible details. The product must be physically engaged with at all times — held, used, applied, consumed, opened, worn or interacted with in a way that clearly communicates its purpose. The product must never feel passive, floating, decorative or secondary. The model must be smiling naturally, with genuine candid natural expression. Hand positioning, grip tension, fingers, posture, fabric contact and product contact points must feel physically accurate and realistic. Clean, simple clothing. The outfit must never feel random or generic. Build a cinematic, premium advertising scene where the model, product, wardrobe and environment feel like one coherent visual narrative. Use a bold but believable creative concept based on the product’s color palette, material, shape and function. Use wide-angle advertising photography with subtle fisheye-inspired perspective distortion. The product may appear slightly larger when closer to the lens to increase visual impact. Maintain clear separation between foreground, midground and background. Lighting must be clean, high-contrast and premium. The model’s face should be well-lit, showing natural skin texture, pores and expression detail. The contact points between hands, product, wardrobe and environment must be clearly visible. Shadows must feel natural and anchor the product and model realistically in the scene. The final image should look like ultra-high-resolution cinematic advertising photography with extreme clarity, crisp detail, realistic material textures, natural skin texture and visible fabric detail. Avoid CGI look, illustration, floating product, lack of interaction, neutral facial expression, generic wardrobe, disconnected styling, artificial skin smoothing or over-stylization.
 
-    OBJECTIVE
-    The ad must:
-    • Capture attention within 1 second
-    • Deliver a strong transformation or BIG PROMISE
-    • Clearly show how the result is achieved
-    • Be emotionally engaging and instantly understandable
-
-    STRUCTURE
-    Headline: Primary scroll stopper. Must carry most of the conversion weight. Clear, concise, bold, emotion or outcome focused, curiosity or desire driven.
-    Visual Context: Must reinforce the promise through product display, transformation moment, lifestyle outcome, usage demonstration or before/after effect.
-    Call to Action: Clear, natural and visually noticeable. Encourages immediate action.
-    CRITICAL CONSTRAINT: Do NOT include any secondary subheadlines, secondary subtitles, or extra supporting text blocks on the visual image itself. Only show the primary main Headline and the CTA to ensure maximum aesthetic purity and direct response power.
-
-    COPY RULES
-    Focus on outcomes and transformation. Use short, punchy and clear messaging. Combine emotional trigger with logical credibility. Avoid generic marketing language. Do NOT write or place a subheadline.
-
-    TEXT QUALITY
-    All text must be fully legible, error-free, and use correct language. Text must be optimized for mobile readability and maintain strong contrast.
-    CRITICAL: ALL GENERATED TEXT INSIDE THE IMAGE MUST BE IN ${getLangName(lang).toUpperCase()}.
-
-    VISUAL RULES
-    ${hasBaseImages ? 'Replicate the reference visual style. Maintain brand consistency and clean hierarchy. Ensure balanced layout, strong contrast and Instagram feed optimization.' : 'Maintain brand consistency and clean hierarchy. Ensure balanced layout, strong contrast and Instagram feed optimization.'}
-
-    OUTPUT
-    Generate a cohesive, emotionally persuasive, high-converting Instagram ad with a single scroll-stopping headline, NO subheadline, and perfectly legible text ${hasBaseImages ? 'aligned with the reference style' : ''}.
+    TEXT & OVERLAYS:
+    • PLACEMENT & LAYOUT: Position the primary SCROLL-STOPPING pattern interrupt Headline (Title) near the top of the image, using a bold, heavy, and highly impactful display typeface. CRITICAL: Leave generous negative space (margin) at the very top of the image so the text is NOT glued to the top edge. Ensure breathing room above the headline.
+    • TITLE CONTRAST OVERLAY (MANDATORY): The Title MUST have a background gradient or solid overlay behind the text using the visual's primary color to ensure EXTREME HIGH CONTRAST and pop!
+    • CALL-TO-ACTION (CTA): Position the CTA near the bottom of the image, designed and styled to look exactly like a physical, clean, premium clickable button (with a filled background container, rounded corners/pill-shaped, and centered text). CRITICAL: Leave generous negative space (margin) at the very bottom of the image so the button is NOT glued to the bottom edge. Ensure breathing room below the CTA.
+    • CRITICAL CONSTRAINT: Do NOT include any secondary subheadlines, secondary subtitles, or extra supporting text blocks on the visual image itself to ensure maximum aesthetic purity and direct response power.
+    • Text must be optimized for mobile readability and maintain strong contrast.
+    • ALL GENERATED TEXT INSIDE THE IMAGE MUST BE IN ${getLangName(lang).toUpperCase()}.
     `;
   } else if (style === 'Stop-the-Scroll') {
     styleRules = `
@@ -134,37 +130,35 @@ export const buildCreativeImagePrompt = (
     `;
   } else if (style === 'Short-Human') {
     styleRules = `
-    Short-Human / High-Converting Facial Emotion & Body Language Rules:
-    If people appear, their facial expression and body language must reinforce the emotional promise of the ad.
-    Emotion must be instantly readable. Neutral or passive expressions are not allowed.
-
-    Facial expressions must:
-    • Match the headline emotion
-    • Feel authentic and natural
-    • Be clearly visible on mobile
-
-    Use emotional alignment:
-    • Desire or success → confident smile, proud posture
-    • Relief or solution → relaxed face, soft smile
-    • Curiosity → focused gaze, subtle surprise
-    • Emotional bonding → laughter, touch, eye contact
-    • Pain point → visible frustration before transformation
-
-    Body language must communicate engagement, confidence, connection or product interaction. Avoid stiff or stock-like poses.
-
-    Eye direction must be intentional:
-    • Toward viewer for connection
-    • Toward product or headline for guidance
-    • Between subjects for storytelling
-
-    Faces must be large enough, well lit and clearly visible.
-    Goal: create emotional resonance, trust and identification with the viewer.
+    Create an ultra-realistic, high-impact taken from iphone photo advertising image using the provided product reference image as the absolute visual truth. Preserve the products exact design, colors, materials, proportions, shape, finish, texture and visible details. The product must be physically engaged with at all times — held, used, applied, consumed, opened, worn or interacted with in a way that clearly communicates its purpose. The product must never feel passive, floating, decorative or secondary. The model must be smiling naturally, with genuine candid natural expression. Hand positioning, grip tension, fingers, posture, fabric contact and product contact points must feel physically accurate and realistic. Clean, simple clothing. The outfit must never feel random or generic. Build a cinematic, premium advertising scene where the model, product, wardrobe and environment feel like one coherent visual narrative. Use a bold but believable creative concept based on the product’s color palette, material, shape and function. Use wide-angle advertising photography with subtle fisheye-inspired perspective distortion. The product may appear slightly larger when closer to the lens to increase visual impact. Maintain clear separation between foreground, midground and background. Lighting must be clean, high-contrast and premium. The model’s face should be well-lit, showing natural skin texture, pores and expression detail. The contact points between hands, product, wardrobe and environment must be clearly visible. Shadows must feel natural and anchor the product and model realistically in the scene. The final image should look like ultra-high-resolution cinematic advertising photography with extreme clarity, crisp detail, realistic material textures, natural skin texture and visible fabric detail. Avoid CGI look, illustration, floating product, lack of interaction, neutral facial expression, generic wardrobe, disconnected styling, artificial skin smoothing or over-stylization.
     `;
   } else if (style === 'Secret Insider' || style === 'Secret Info') {
     styleRules = `
-    Secret Info / Insider Rules:
-    Confidential aesthetic, report overlay, blurred sensitive sections, highlighted areas, secondary inset image, subtle grain.
-    Goal: Create a sense of exclusivity, leaked information, or insider knowledge.
+    Secret Info / Reveal Creative Rules (Format 6):
+    Goal: Create an elite, high-converting secret reveal or leak ad that conveys instant authority and intense curiosity.
+    • STYLE: A highly engaging hybrid layout containing a realistic background photograph combined with a high-contrast authoritative inset.
+    • INSET ELEMENT (CRITICAL):
+      - In the top-right corner, incorporate a detailed secondary inset showing a technical map, a colored data chart, a scientific graph, or a cropped document/dashboard screenshot.
+      - The inset should have a subtle border or light shadow to separate it beautifully from the main background.
+    • BOTTOM BANNER & HEADLINE:
+      - At the bottom of the image, include a clean black or extremely dark high-contrast horizontal banner overlay spanning the full width.
+      - Just above or on the banner, have a small red or white tag that says "REVEALED" or "REVELADO" (depending on the language).
+      - The main headline on the dark banner must be written in huge, clean, bold white and red/accent uppercase sans-serif display typography (e.g. "THIS SECRET SUBURB IS SET TO BOOM" or "ESTE SEGREDO REVELADO...").
+    • BACKGROUND SCENE: An eye-catching, high-resolution realistic aerial view, real-world setting, or candid shot that sets the perfect context for the secret discovery.
+    • NO PRICE: There must be absolutely no prices or currency labels.
+    `;
+  } else if (style === 'Native-Social') {
+    styleRules = `
+    Native Social Post Creative Rules (Format 5):
+    Goal: Create an organic social media news/gossip-style ad that completely bypasses ad blindness by mimicking a standard native platform format.
+    • STYLE: Primary candid portrait or lifestyle photograph combined with a circular secondary inset image.
+    • CIRCULAR INSET (CRITICAL):
+      - In the top-right or center-right area, display a perfect circular inset frame with a clean border.
+      - Inside this circle, show a secondary closeup or action shot of the product, or the person using the product.
+    • BOTTOM HEADLINE (NEWS/GOSSIP STYLE):
+      - Near the bottom, overlay a dramatic high-contrast dark horizontal background box or solid text backing.
+      - Write a sensational headline inside in bold, prominent white uppercase letters.
+    • BACKGROUND SCENE: A raw, candid, unedited look. Features a real, expressive person or lifestyle situation in focus. High contrast and clean composition.
     `;
   } else if (style === 'Social Gossip') {
     styleRules = `
@@ -214,20 +208,69 @@ export const buildCreativeImagePrompt = (
     Goal: Create an epic, premium cinematic scene with extreme mood and high aesthetic quality.
     • STYLE: Exquisite Hollywood movie still aesthetic with movie LUT. Stylish, premium, sophisticated.
     • COMPOSITION & CAMERA WORK: Exaggerated dramatics Dutch angle (tilted camera level), dynamic and non-traditional composition that breaks rules of balance to create high tension, cinematic wide lens perspective.
-    • LIGHTING: Dramatic high-contrast studio lighting, backlighting, moody shadows, rim light.
+    • LIGHTING: Dramatic high-contrast three point lighting, backlighting, moody shadows, rim light.
     • COLOR GRADING: Stylish premium color tones LUT, deep rich black levels.
     • THEME: Artistic narrative representation that tells a powerful story in a single stylish shot.
+    `;
+  } else if (style === 'Versus') {
+    styleRules = `
+    Versus / Side-by-Side Product Comparison Creative Rules:
+    Goal: Create a highly polished, high-contrast, side-by-side split screen comparison layout.
+    • STYLE: Pristine, sharp, elegant commercial-tier studio product photography on a split screen. Minimalist and structured layout.
+    • TITLE & HOOK: Place a HUGE, extremely short, and highly impactful Title/Hook at the very top of the image to grab attention.
+    • COMPOSITION: Two distinct sides compared split horizontally or vertically (split split-screen). On the left side: the traditional competitor product on a muted background. On the right side: our modern product. In the exact center where they meet: a minimalist, sophisticated circular badge displaying the clean lettering 'VS'.
+    • BACKGROUND (MANDATORY): The background MUST feature a high-contrast gradient utilizing the primary colors from the visual's established color palette. DO NOT use plain white or flat cream; make the colors pop with intensity to amplify the comparison drama.
+    • HIGHLIGHT VALUE: Under each product, write clean aesthetic text labels highlighting the contrasting value: competitor has 2-3 brief labels with red indicator markings (such as minimalist cross icons), and our premium alternative has 2-3 brief labels with green indicator markings (such as minimalist checkmark icons). CRITICAL CONSTRAINTS: DO NOT use circular bullet points for the lists. Strictly text or cross/checkmarks without circles.
+    • NO BRAND LABELS: DO NOT place broad titles like "Competitor", "Our Solution", "Them", "Us", or brand names above the products. Keep the space above the products clean except for the main Title/Hook at the very top.
+    • STRICT NO PRICE CONSTRAINT: There must be absolutely no numerical prices, currency labels (like $, €, £), or price tags anywhere on either product or background. Keep all text labels extremely micro, minimalist, and descriptive of product performance (e.g., '12-hour wear', 'Guaranteed Quality', 'All-Day Performance').
+    `;
+  } else if (style === 'SMS-Mockup') {
+    styleRules = `
+    SMS Mockup Creative Rules:
+    Goal: Create a highly engaging, personal, and clickable SMS/text message mockup advertisement.
+    • STYLE: Ultra-realistic photograph overlaid in the upper center with a realistic, semi-transparent iOS-style SMS text message notification card.
+    • OVERLAY CARD DESIGN (CRITICAL):
+      - The notification card must look like a floating iOS text message alert.
+      - It must have rounded corners and a pristine white/off-white semi-transparent background with soft backdrop blur.
+      - Top Left: A small circular bright green Messages app icon (or standard chat icon).
+      - Top Center/Right: The word 'MESSAGES' in clean, uppercase gray lettering, and a time indicator like 'now' or 'agora' (depending on the language) on the far right.
+      - Main Content: A bold Sender Name (e.g. 'Wifey', 'Mãe', 'Amigo', 'Cliente', or 'Boss') and underneath it, the highly intriguing direct message.
+    • BACKGROUND SCENE: 
+      - The background behind the notification popup must be a raw, candid, unedited iPhone-style photograph (UGC style).
+      - It should feature a real person with a natural smiling, surprised, or candid expression, or a realistic scenario of someone using or reacting to the product.
+      - The background should have realistic depth of field, with the person or setting slightly out of focus, making the text message card in the foreground pop beautifully with perfect contrast and readability.
+    • TEXT CONSTRAINT: The text on the notification bubble must be extremely clear, sharp, high-contrast, and 100% legible. Do NOT place any other text, prices, or secondary overlays anywhere on the image.
+    `;
+  } else if (style === 'Humor') {
+    styleRules = `
+    Humor / Relatable Split-Screen Comparison Rules:
+    Goal: Create a highly engaging, funny, side-by-side comparison meme format showing a stark contrast between two very different things.
+    • STYLE: Split-screen vertical layout (two halves clearly divided).
+    • LEFT SIDE (THE GOOD OPTION / OUR SOLUTION):
+      - Bright, vibrant, clean background (color should match/complement the product's context or vibe).
+      - Top text: A punchy positive statement (e.g., "Power of Real [Product]").
+      - Center: A clear, bright image of the high-quality product/solution.
+      - Decorator: A casual, hand-drawn colored arrow pointing directly to the product.
+      - Bottom text: A powerful benefit (e.g., "One Complete Meal", "Ultimate Comfort").
+    • RIGHT SIDE (THE OLD WAY / COMMON ALTERNATIVE):
+      - Dark, contrasting background (e.g., deep purple, dark grey).
+      - Top text: Playful dismissal (e.g., "Nah..", "Hmm..", "Wait what?").
+      - Center: A basic image of a related but distinct competing product or traditional alternative in the same category (e.g., if our product is fresh dog food, the right side is dry kibble). It must be visually distinct from the left side but clearly the "old way" of doing things.
+      - Bottom text: A lighthearted punchline (e.g., "What?", "Not quite", "Try again").
+    • TYPOGRAPHY: Clean, bold, highly legible sans-serif font.
+    • NO BRAND LABELS: Do NOT use literal labels like "Our Product" or "Competitor".
+    • TONE: Lighthearted, meme-like, relatable, and extremely fast to read. Avoid overly aggressive or negative words.
     `;
   } else {
     // Default / General fallback
     styleRules = `
-    TASK: Professional Commercial Photography.
+    TASK: Professional Commercial Photography taken from iphone.
     SCENE & SETTING: ${prompt}.
     TECHNICAL: Photorealistic, 8k, studio lighting.
     `;
   }
 
-  const rawUgcOverride = (style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling') ? `
+  const rawUgcOverride = (style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Secret Insider' && style !== 'Native-Social' && style !== 'Humor') ? `
     CRITICAL IMAGE STYLE OVERRIDE (INSTAGRAM MANDATORY STYLE):
     • OVERRIDE ESTHETIC: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual".
     • The scene must look completely real, raw, candid, authentic, and amateur as if taken on an everyday smartphone camera (iPhone).
@@ -242,6 +285,7 @@ export const buildCreativeImagePrompt = (
     SPECIFIC CONTEXT FOR THIS GENERATION:
     VISUAL DESCRIPTION: ${prompt}
     CAMERA ANGLE: ${composition || "Medium Shot"}.
+    FRAMING CONSTRAINT: This image will be explicitly cropped to a tight vertical 4:5 aspect ratio (Instagram/Meta Portrait format). Ensure the main subject, texts, and CTA are centered and vertically aligned so they fit perfectly within a 4:5 vertical portrait screen layout.
     ${hasBaseImages ? `FOUNDATION ASSET(S): Use the provided product image(s) as the absolute base and hero of the composition. You may be provided with multiple reference images; use them to understand the product from different angles or contexts.
     CRITICAL RULE: The product from the image reference MUST be the primary focus and foundation shot. 
     CONSTRAINT: DO NOT PLACE reference images on the back of computers, smartphones, etc.` : 'FOUNDATION ASSET(S): No reference images provided. Generate a high-quality visual based strictly on the description.'}
@@ -519,18 +563,29 @@ export const buildSoftwareRecommendationsPrompt = (
             Return exactly 3 tools/platforms/extensions.
             Output strictly in ${getLangName(lang)}.
             
-            CRITICAL: This is NOT a growth hack or marketing outreach bot clone for outbound prospecting. Instead, suggest highly practical digital utilities, software, or tools that the end-user (your client\'s customer) can use to get maximum value. 
+            CRITICAL DESIGN REQUIREMENT FOR THE 3 SUGGESTIONS:
+            - EXACTLY ONE OF THE SUGGESTIONS (strictly the first one) MUST be a completely original, highly creative, custom software or digital tool concept developed exclusively for the Dream Buyers of this product. It must be a bespoke, brand new software idea that directly addresses and solves their primary pain point and main Jobs-to-be-Done (JTBD) in a spectacular, innovative way. Give it a highly creative, unique, and professional original name.
+            - The other 2 suggestions should be existing, highly curated digital utilities or platforms (e.g., specialized set-ups on platforms like Notion, Canva, Loom, Trello, ChatGPT, or niche tools) that complement their day-to-day work or experience.
             
             For each recommended tool, you MUST provide:
-            1. name: Name of the software/extension/tool (e.g. Notion, Canva, Loom, Trello, ChatGPT, Miro, or specialized niche apps fitting the product\'s audience)
-            2. category: The category (e.g. Productivity, Financial Tracker, Content Design, Communication, Deep Work)
-            3. overview: Explain what this tool is and how it helps the customer achieve their Jobs to be done in their day-to-day life/workflow.
+            1. name: Name of the software/extension/tool (For the first suggestion: a completely new, original app name. For others: Notion, Canva, Loom, Trello, ChatGPT, Miro, or specialized niche apps fitting the product's audience)
+            2. category: The category (e.g. Productivity, Financial Tracker, Content Design, Communication, Deep Work, Bespoke Custom Solution)
+            3. overview: Explain what this tool is and how it helps the customer achieve their Jobs to be done in their day-to-day life/workflow. For the first suggestion, highlight how this brand new original tool specifically solves their main pain point.
             4. objective: Clear objective of why they should use this specific digital tool.
             5. ultimateOutcome: What constitutes a spectacular outcome of using this tool successfully (e.g. "A beautifully organized content calendar updated in under 10 minutes a week").
             6. why: Why this tool is a perfect fit for this specific audience or problem.
             7. aiAgent: Specify the primary digital utility, main feature, or integrated AI assistant they should use within that tool (e.g. "ChatGPT Copywriting Assistant", "Notion AI Content Organizer", "Loom Video Recorder").
             8. subAgents: Recommended companion tools or browser extensions (name, role, and a list of skills) to maximize their experience with the primary tool.
-            9. initialPrompt: Practical setup instructions, custom templates, or copy-paste prompts (minimum 2 paragraphs) that the user can copy into that tool or an AI platform to get started immediately.
+            9. initialPrompt:
+               - For the FIRST suggestion (the custom original software concept): This field MUST be an extremely extensive, high-fidelity, complete, and highly structured initial prompt formatted as a thorough Product Requirement Document (PRD) designed to guide any AI coding assistant to build/code this app seamlessly ("vibecoding"). It MUST follow this exact PRD structure and contain these detailed sections:
+                 • 1. SUMÁRIO EXECUTIVO (Executive Summary): Short high-impact introduction of the tool and the main problem it solves.
+                 • 2. GOAL FINAL (The Ultimate Goal): The core vision and ultimate business/personal value it delivers.
+                 • 3. CUSTOMER JOURNEY & USER STORIES: Map the user's emotional and operational path, including specific user stories outlining their pain points, actions, and successful resolutions.
+                 • 4. PRINCÍPIO DE PARETO (80/20 Pareto Features): Define the critical 20% of features that will deliver 80% of the value. Do not overcomplicate; keep the scope highly focused on the core utility while listing precise stateful widgets, inputs, and interactive panels.
+                 • 5. ESTRUTURA DE LAYOUTS (Focus on the Main Interface): Explicit description of the primary user interface layout. Focus 100% on the central screen/view, step-by-step element hierarchy, side panels, and content blocks.
+                 • 6. DIRETRIZES VISUAIS (Visual Guidelines & UI/UX): Specific custom Tailwind theme, refined CSS color combinations, elegant modern typography pairings (e.g. Space Grotesk/Inter), aesthetic lighting effects (e.g. glassmorphism or sleek dark/light theme), hover behaviors, micro-interactions, responsive grids, and clean borders.
+                 • 7. COMPLETE CODING PROMPT DIRECTIVE: Authoritative and directive prompt copy-paste wording written in a direct coding style, instructing the AI to output a fully functional, highly polished, zero-bug React/Tailwind/TypeScript implementation on the first attempt.
+               - For the other 2 standard suggestions: A high-quality, practical setup prompt or template guide (minimum 2 paragraphs) customized for that platform.
             10. tasks: A list of 4-6 specific, actionable steps/tasks they can follow to config and run this tool.
             `;
 };

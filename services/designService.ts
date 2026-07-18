@@ -302,11 +302,17 @@ export const generateVibecodingPrompt = async (
     Immersive scroll-driven storytelling.
     Import a distinctive font from Google Fonts in head
     
+    LAYOUT ROBUSTNESS: 
+    The design must be bulletproof against varied text lengths. Never let text overflow, cut off awkwardly, or break cards. Apply flexible layout solutions (e.g. flex-wrap, grid, break-words, overflow-wrap, and class elements like overflow-hidden or Tailwind line-clamp where appropriate).
+    
     AVOID:
-    1.basic fonts Inter, Roboto, Lato, Open Sans;
+    1. basic fonts Inter, Roboto, Lato, Open Sans;
     2. Standard corporate blue and purple colors ai slop
     3. card grids with identical sizing and no visual hierarchy
     4. sticky navs that obscure content on mobile
+    5. Rigid fixed heights (such as h-64 or h-[400px]) on text containers—always use auto-height, min-h-* or container vertical padding to safeguard against text growth.
+    6. Broken column spans or visual misalignment caused by wrapping text. Ensure text wraps beautifully.
+    7. Visual design system indicators in the user-facing interface. You are STRICTLY FORBIDDEN from generating visible elements on the actual landing page like color circles/swatches, hex code labels, visual design systems, font listings, or layout metrics. All typography and style decisions are solely configuration for styling and must not be rendered as HTML copy or content.
 
     BEFORE GENERATING
     2.list the harmonious font combination and color palette
@@ -427,7 +433,7 @@ export const generateVibecodingPrompt = async (
         finalPrompt += `\n\nSTRICT TECH REQUIREMENT: IT IS STRICTLY PROHIBITED TO USE REACT. The code must be pure HTML, CSS, and Vanilla JavaScript.`;
 
         // Adding user requested rules for Big Typography and Functional Mobile Menu/Animations
-        finalPrompt += `\n\nFINAL CRITICAL REQUIREMENTS:\n1. Big Typography: Use large, confident font sizes for headings and key messages to ensure impact.\n2. Functional Interactions: Make sure that the transitions, texts and animations reveal on scroll work perfectly (implement with Vanilla JS). Ensure the mobile menu opens and closes correctly. IMPORTANT: When the mobile menu is open, it must have a proper background (covering the screen) and a clearly visible Close button to exit.`;
+        finalPrompt += `\n\nFINAL CRITICAL REQUIREMENTS:\n1. Big Typography: Use large, confident font sizes for headings and key messages to ensure impact.\n2. Functional Interactions: Make sure that the transitions, texts and animations reveal on scroll work perfectly (implement with Vanilla JS). Ensure the mobile menu opens and closes correctly. IMPORTANT: When the mobile menu is open, it must have a proper background (covering the screen) and a clearly visible Close button to exit.\n3. NO VISUAL SYSTEM INDICATORS: Do NOT build or display visual color palettes, color circles/swatches, hex code tags, font previews, visual system guides, or diagnostic labels inside the actual webpage layout. These are solely for styling configuration and MUST remain invisible on the resulting landing page.`;
 
         return finalPrompt;
     } catch (e) {
