@@ -439,7 +439,7 @@ export const translations = {
         footer_contact: 'Footer & Contact'
       },
       settings: {
-        strategyIncluded: 'Use Power Offer',
+        strategyIncluded: 'Power Offer',
         strategyInjected: 'Strategy Active',
         solutionAware: 'Solution Aware',
         leadformHero: 'Leadform on Hero',
@@ -966,7 +966,7 @@ export const translations = {
         footer_contact: 'Rodapé & Contacto'
       },
       settings: {
-        strategyIncluded: 'Usar Power Offer',
+        strategyIncluded: 'Power Offer',
         strategyInjected: 'Estratégia Ativa',
         solutionAware: 'Solution Aware',
         leadformHero: 'Leadform no Hero',
@@ -1493,7 +1493,7 @@ export const translations = {
         footer_contact: 'Pie de Página y Contacto'
       },
       settings: {
-        strategyIncluded: 'Usar Power Offer',
+        strategyIncluded: 'Power Offer',
         strategyInjected: 'Estrategia Activa',
         solutionAware: 'Solution Aware',
         leadformHero: 'Leadform en Hero',

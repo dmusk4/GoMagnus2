@@ -949,6 +949,8 @@ function App() {
         language: language,
         creativityLevel: 0.5,
         includeStrategy: false,
+        pageObjective: 'Direct Sale',
+        additionalTool: 'None',
         copy: {},
         customDirection: ''
     };
@@ -973,7 +975,10 @@ function App() {
             builderData.tone,
             builderData.creativityLevel,
             builderData.language || language,
-            builderData.customDirection
+            builderData.customDirection,
+            builderData.isSolutionAware,
+            builderData.pageObjective,
+            builderData.additionalTool
         );
 
         updateProduct(prev => ({
@@ -1016,7 +1021,10 @@ function App() {
             builderData.tone,
             builderData.creativityLevel,
             builderData.language || language,
-            builderData.customDirection
+            builderData.customDirection,
+            builderData.isSolutionAware,
+            builderData.pageObjective,
+            builderData.additionalTool
         );
 
         if (partialCopy && partialCopy[sectionId]) {
@@ -1065,7 +1073,7 @@ function App() {
 
     try {
         if (type === 'vibecoding') {
-            const prompt = await generateVibecodingPrompt(settings, filteredCopy, p.name, builderData?.language || language, brandKit);
+            const prompt = await generateVibecodingPrompt(settings, filteredCopy, p.name, builderData?.language || language, brandKit, builderData?.pageObjective, builderData?.additionalTool);
             updateProduct(prev => ({
                 designDirectorData: {
                     ...(prev.designDirectorData || { settings }),

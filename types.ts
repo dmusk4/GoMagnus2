@@ -341,6 +341,8 @@ export interface LandingPageBuilderData {
   creativityLevel: number;
   includeStrategy?: boolean; 
   isSolutionAware?: boolean;
+  pageObjective?: string;
+  additionalTool?: string;
   copy?: LandingPageCopy;
   customDirection?: string;
 }

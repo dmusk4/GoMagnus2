@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Product, Language, LandingPageBuilderData, BuilderSectionId, LandingPageCopy } from '../types';
 import { SalesPageWireframe } from './SalesPageWireframe';
 import { Loader2, Sparkles, LayoutTemplate, Type, Eye, Globe, Check, Zap, GripVertical, ToggleLeft, ToggleRight, Square, Plus, Trash2, MessageSquare, Send, Bot, User, X, Compass, Undo, Redo, Maximize2, FileText, ChevronRight, ChevronDown, Save, Magnet } from 'lucide-react';
-import { refineLandingPageCopy } from '../services/salesPageCopyService';
+import { refineLandingPageCopy, generateRecommendedTool } from '../services/salesPageCopyService';
 import { getTranslation } from '../translations';
 
 interface BuilderProps {
@@ -517,8 +517,21 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
     
     const [autoRefreshing, setAutoRefreshing] = useState<Set<string>>(new Set());
     const [chatRefining, setChatRefining] = useState(false);
+    const [isGeneratingTool, setIsGeneratingTool] = useState(false);
 
-    const isGlobalBusy = chatRefining || autoRefreshing.size > 0 || loading;
+    const isGlobalBusy = chatRefining || autoRefreshing.size > 0 || loading || isGeneratingTool;
+
+    const handleGenerateTool = async () => {
+        setIsGeneratingTool(true);
+        try {
+            const tool = await generateRecommendedTool(product, data.pageObjective || 'Direct Sale', data.language || language);
+            if (tool) {
+                handleDataUpdate({ ...data, additionalTool: tool });
+            }
+        } finally {
+            setIsGeneratingTool(false);
+        }
+    };
 
     const handleDataUpdate = (newData: LandingPageBuilderData) => {
         setPast(prev => [...prev, dataRef.current]);
@@ -807,6 +820,47 @@ export const SalesPageBuilder: React.FC<BuilderProps> = ({ product, language, on
                             </option>
                         ))}
                     </select>
+                </div>
+
+                <div className="h-8 w-px bg-gray-200 hidden md:block shrink-0"></div>
+
+                <div className="flex flex-col min-w-[160px] shrink-0">
+                    <label className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <Magnet size={10} /> Page Objective
+                    </label>
+                    <select 
+                        className="bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-2 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 cursor-pointer hover:bg-100 transition-colors"
+                        value={data.pageObjective || 'Direct Sale'}
+                        onChange={(e) => handleDataUpdate({ ...data, pageObjective: e.target.value })}
+                    >
+                        <option value="Direct Sale">Direct Sale</option>
+                        <option value="Lead Capture / Contact">Lead Capture / Contact</option>
+                        <option value="Booking / Calendar">Booking / Calendar</option>
+                        <option value="Simulator / Specific Tool">Simulator / Specific Tool</option>
+                        <option value="Waitlist">Waitlist</option>
+                    </select>
+                </div>
+
+                <div className="flex flex-col min-w-[160px] shrink-0 relative">
+                    <label className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center justify-between">
+                        <span className="flex items-center gap-1"><Zap size={10} /> Additional Tool</span>
+                        <button 
+                            onClick={handleGenerateTool}
+                            disabled={isGeneratingTool}
+                            className="text-indigo-600 hover:text-indigo-800 transition-colors disabled:opacity-50"
+                            title="Gerar com AI"
+                        >
+                            {isGeneratingTool ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                        </button>
+                    </label>
+                    <input 
+                        type="text"
+                        placeholder="e.g. ROI Calculator"
+                        className="bg-gray-50 border border-gray-200 rounded-lg py-1.5 px-2 text-xs font-bold text-gray-700 outline-none focus:border-indigo-500 hover:bg-100 transition-colors"
+                        value={data.additionalTool || ''}
+                        onChange={(e) => handleDataUpdate({ ...data, additionalTool: e.target.value })}
+                        disabled={isGeneratingTool}
+                    />
                 </div>
 
                 <div className="h-8 w-px bg-gray-200 hidden md:block shrink-0"></div>

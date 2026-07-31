@@ -241,7 +241,9 @@ export const generateVibecodingPrompt = async (
     copyData: any,
     productName: string,
     language: Language,
-    brandKit?: BrandKitAnalysis
+    brandKit?: BrandKitAnalysis,
+    pageObjective?: string,
+    additionalTool?: string
 ): Promise<string> => {
     const ai = getAI();
     
@@ -269,6 +271,8 @@ export const generateVibecodingPrompt = async (
     VISUAL INTENSITY: ${designSettings.visualIntensity}
     ICON SET: ${designSettings.iconSet}
     COLOR PALETTE: ${designSettings.colorPalette} ${brandKit ? `(Derived from refs: ${brandKit.colors.join(', ')})` : ''}
+    PAGE OBJECTIVE: ${pageObjective || 'Direct Sale'}
+    ADDITIONAL TOOL/INTEGRATION: ${additionalTool || 'None'}
     
     SECTIONS STRUCTURE: ${sectionStructure}
     `;
@@ -338,6 +342,10 @@ export const generateVibecodingPrompt = async (
     Restrained color palette (1 primary color and 1 accent max)
     Minimal, confident components
     Place context images related to product/brand and marketing ICP when needed. No stock-photo or SaaS clichés. 
+
+    PAGE OBJECTIVE & TOOL INTEGRATION INSTRUCTION:
+    Explicitly add a section in your generated prompt about the "PAGE OBJECTIVE AND ADDITIONAL TOOL/INTEGRATION" based on the context provided.
+    Instruct the AI that the forms, CTAs, and overall page structure MUST be built to serve this specific objective (e.g. direct sale, lead capture, booking, or simulator tool). Give clear directives on how to structure the code for this tool (e.g., place a specific form in the hero, build a custom widget).
 
     Avoid:
     Cookie-cutter layouts

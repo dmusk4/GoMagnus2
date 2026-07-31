@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className={`border-b border-gray-100 flex items-center transition-all h-20 shrink-0 ${isCollapsed ? 'px-2 justify-center gap-1' : 'px-4 justify-between'}`}>
             <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full space-x-2'}`}>
-                <img src={isCollapsed ? "/icon.png" : "/logo.png"} alt="Marketing DONE" className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-8 w-auto' : 'h-11 w-auto'}`} />
+                <img src={isCollapsed ? "/favicon-markethero.png" : "/market-hero2x.png"} alt="MarketHero" className={`object-contain transition-all duration-300 ${isCollapsed ? 'h-8 w-auto' : 'h-11 w-auto'}`} />
             </div>
             
             <button 

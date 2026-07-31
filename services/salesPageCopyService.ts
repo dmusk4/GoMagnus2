@@ -58,12 +58,12 @@ const buildSchema = (selectedSections: BuilderSectionId[]) => {
                 subtitle: { type: Type.STRING },
                 trustSignals: { type: Type.ARRAY, items: { type: Type.STRING } },
                 cta: { type: Type.STRING },
-                ctaSubtext: { type: Type.STRING },
+                ctaSubtext: { type: Type.STRING, description: "Short microcopy (max 4 words) below the CTA." },
                 // Solution Aware Form Fields
-                formTitle: { type: Type.STRING, description: "Pragmatic title for the embedded hero form (e.g. 'Book Your Demo')." },
-                formSubtitle: { type: Type.STRING, description: "Short persuasive subtext for the form (e.g. 'Get instant access')." },
+                formTitle: { type: Type.STRING, description: "Pragmatic title for the embedded hero form." },
+                formSubtitle: { type: Type.STRING, description: "Short persuasive subtext for the form." },
                 formButtonText: { type: Type.STRING, description: "Action button text for the form." },
-                formTrustText: { type: Type.STRING, description: "Microcopy below button (e.g. 'No credit card required')." }
+                formTrustText: { type: Type.STRING, description: "Short microcopy (max 4 words) below button. Example: 'No credit card required'" }
             },
             required: ["eyebrow", "headline", "subtitle", "trustSignals", "cta"]
         };
@@ -456,7 +456,9 @@ export const generateLandingPageCopy = async (
     creativityLevel: number,
     language: Language,
     customDirection?: string,
-    isSolutionAware?: boolean
+    isSolutionAware?: boolean,
+    pageObjective?: string,
+    additionalTool?: string
 ): Promise<any> => {
     const ai = getAI();
     const schema = buildSchema(selectedSections);
@@ -478,10 +480,10 @@ export const generateLandingPageCopy = async (
     const solutionAwareInstruction = isSolutionAware 
         ? `SOLUTION AWARE HERO MODE ACTIVE:
            - The Hero section MUST act as a high-conversion Lead Capture Form.
-           - Generate 'formTitle': A direct, pragmatic instruction (e.g. "Book Your Demo", "Start Free Trial", "Get Quote").
-           - Generate 'formSubtitle': Reinforce value (e.g. "Get instant access. No credit card required.").
-           - Generate 'formButtonText': High friction reducer (e.g. "Show Me The Platform").
-           - Generate 'formTrustText': Microcopy below button (e.g. "Secure & Confidential" or "14-Day Money Back").
+           - formTitle: A direct, pragmatic instruction (e.g. "Book Your Demo").
+           - formSubtitle: Reinforce value (e.g. "Get instant access.").
+           - formButtonText: High friction reducer (e.g. "Show Me The Platform").
+           - formTrustText: Only the text itself, e.g. "100% Secure" or "No credit card needed". Do NOT output instructions.
            - The headline should focus on the IMMEDIATE benefit of solving the known problem.
            - Assume the user knows what they are looking for and just needs to be converted.`
         : "";
@@ -496,10 +498,14 @@ Your mission is to generate a single, complete sales landing page that is conver
     TONE: ${tone}
     CREATIVITY: ${creativityLevel}
     LANGUAGE: ${getLangName(language)}
+    PAGE OBJECTIVE: ${pageObjective || 'Direct Sale'}
+    ADDITIONAL TOOL/INTEGRATION: ${additionalTool || 'None'}
     
     STRATEGIC DIRECTION:
     ${customDirection ? customDirection : "None provided. Focus on high conversion best practices."}
     ${solutionAwareInstruction}
+    
+    IMPORTANT: The generated copy MUST align with the PAGE OBJECTIVE. If the objective is Lead Capture, emphasize lead generation mechanisms (forms, freebies). If it's Booking/Scheduling, emphasize the call/meeting value. If it's a Simulator/Tool, structure the copy around engaging with that tool. The forms generated (e.g. Lead Form, Hero Form) MUST reflect the ADDITIONAL TOOL/INTEGRATION requested.
 
 Your style is: Confident, empathetic, and direct.
 - Assume the audience is expert but keep language simple (8th grade level).
@@ -514,12 +520,13 @@ CRITICAL TEXT LENGTH CONSTRAINTS (NEVER EXCEED - ESSENTIAL TO PREVENT LAYOUT OVE
 2. **Subtitles & Subheadlines (hero subtitles, section descriptions)**: Strictly MAX 15-20 words. Focus on a single impact-heavy statement.
 3. **Pills & Eyebrows (such as hero eyebrow, badges)**: Strictly MAX 2-4 words.
 4. **All Section Body Paragraphs / Paragraphs**: Strictly MAX 2 short sentences (MAX 30 words total per paragraph). Ensure readability by being ultra-concise.
-5. **Feature/Category/Step Cards**:
+5. **Feature/Category/Step Cards**: 
    - Card titles: MAX 3-5 words.
    - Card descriptions/benefits: MAX 12-15 words. Keep them to a single concise line or action bullet point.
 6. **CTA Buttons**: MAX 2-3 words (e.g., "Start Free", "Book Demo").
-7. **Testimonials**: Keep each quote concise, MAX 2 sentences (MAX 25 words).
-8. **FAQs**: Answer must be MAX 2 sentences (MAX 30 words).
+7. **Trust Text / Microcopy below forms & buttons (ctaSubtext, formTrustText)**: STRICTLY MAX 2-6 words (e.g., "No credit card required", "100% secure"). MUST BE EXTREMELY CONCISE AND NOT INCLUDE PROMPT INSTRUCTIONS.
+8. **Testimonials**: Keep each quote concise, MAX 2 sentences (MAX 25 words).
+9. **FAQs**: Answer must be MAX 2 sentences (MAX 30 words).
 
 Every word must count. Eliminate all redundant phrasing. Punchy, high-impact, short.
 
@@ -652,5 +659,42 @@ export const refineLandingPageCopy = async (
         return extractJSON(response.text);
     } catch (e) {
         return {};
+    }
+};
+
+export const generateRecommendedTool = async (product: Product, pageObjective: string, language: Language): Promise<string> => {
+    const ai = getAI();
+    const prompt = `You are an expert marketing strategist and growth hacker.
+Given the product context and the page objective, recommend the single most effective "Additional Tool" or "Integration" (e.g. ROI Calculator, Free Audit Quiz, Pricing Estimator, Lead Magnet Download, Setup Simulator) that should be integrated into the landing page to maximize conversions for this objective.
+
+PRODUCT CONTEXT:
+Name: ${product.name}
+Description: ${product.description}
+Goal: ${product.goal}
+Target Audience: ${product.targetAudience}
+
+PAGE OBJECTIVE: ${pageObjective}
+LANGUAGE: ${getLangName(language)}
+
+CRITICAL CONSTRAINTS:
+- Output ONLY the name/description of the tool.
+- Be EXTREMELY concise and objective.
+- MAXIMUM length: 100 characters.
+- DO NOT include any introductory or concluding text, just the tool name/short concept.
+- Examples: "Interactive ROI Calculator", "Free 2-Minute Audit Quiz", "Dynamic Pricing Estimator".`;
+
+    try {
+        const result = await ai.models.generateContent({
+            model: "gemini-2.5-pro",
+            contents: prompt,
+            config: {
+                temperature: 0.7,
+            }
+        });
+        
+        return result.text ? result.text.trim().substring(0, 100) : "";
+    } catch (e) {
+        console.error("Failed to generate recommended tool", e);
+        return "";
     }
 };
