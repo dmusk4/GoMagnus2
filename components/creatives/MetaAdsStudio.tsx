@@ -1,7 +1,8 @@
 import React from 'react';
-import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX, ChevronLeft, ChevronRight, Type, Pencil } from 'lucide-react';
 import { Product, Creative, Language } from '../../types';
 import { getTranslation } from '../../translations';
+import { CanvaImageEditorModal } from './CanvaImageEditorModal';
 
 interface MetaAdsStudioProps {
   product: Product;
@@ -47,6 +48,40 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
 }) => {
   const t = getTranslation(language);
   const creatives = Array.isArray(product.creatives) ? product.creatives : [];
+  const [editingCreative, setEditingCreative] = React.useState<Creative | null>(null);
+
+  const handleSaveToCreative = (creativeId: string, newImageUrl: string, targetIndex?: number) => {
+    const updated = creatives.map(c => {
+      if (c.id === creativeId) {
+        const existingUrls = c.imageUrls && c.imageUrls.length > 0 ? c.imageUrls : [c.imageUrl || ''];
+        let updatedUrls = [...existingUrls];
+        let newActiveIndex = targetIndex;
+
+        const foundIndex = existingUrls.indexOf(newImageUrl);
+        if (foundIndex !== -1) {
+          // Keep original order of variations without moving chosen image to first
+          newActiveIndex = foundIndex;
+        } else if (targetIndex !== undefined && targetIndex >= 0 && targetIndex < existingUrls.length) {
+          // Update the variation at targetIndex in place
+          updatedUrls[targetIndex] = newImageUrl;
+          newActiveIndex = targetIndex;
+        } else {
+          // Add new variation to the end without shuffling existing ones
+          updatedUrls = [...existingUrls, newImageUrl];
+          newActiveIndex = updatedUrls.length - 1;
+        }
+
+        return {
+          ...c,
+          imageUrl: newImageUrl,
+          imageUrls: updatedUrls,
+          activeImageIndex: newActiveIndex ?? 0
+        };
+      }
+      return c;
+    });
+    onUpdate(updated);
+  };
 
   React.useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
@@ -256,7 +291,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
             <div key={creative.id} className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden flex flex-col relative group hover:shadow-2xl transition-all duration-500">
               <div className="p-3 flex items-center justify-between border-b border-gray-50 bg-white/80 backdrop-blur-sm sticky top-0 z-[20]">
                 <div className="flex items-center gap-2 max-w-[70%]">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-50 to-purple-50 flex items-center justify-center text-white font-bold text-xs shadow-inner shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-inner shrink-0">
                     {product.name.charAt(0)}
                   </div>
                   <div className="overflow-hidden">
@@ -297,9 +332,30 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                     const isMulti = urlsList.length > 1;
 
                     return (
-                      <div className="w-full h-full relative cursor-zoom-in group" onClick={() => setLightboxImage?.(activeUrl)}>
+                      <div 
+                        className="w-full h-full relative cursor-pointer group" 
+                        onClick={() => {
+                          if (setLightboxImage) {
+                            setLightboxImage(activeUrl);
+                          } else {
+                            setEditingCreative(creative);
+                          }
+                        }}
+                      >
                         <img src={activeUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Ad Visual" />
                         
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCreative(creative);
+                          }}
+                          className="absolute top-3 right-3 bg-black/80 hover:bg-black text-white px-3 py-1.5 rounded-xl font-semibold text-xs shadow-lg flex items-center gap-1.5 z-20 backdrop-blur-md transition-all border border-white/20 hover:scale-105 cursor-pointer"
+                          title="Abrir no Editor Canva"
+                        >
+                          <Pencil size={12} />
+                          <span>Editor Canva</span>
+                        </button>
+
                         {isMulti && (
                           <>
                             <button
@@ -336,9 +392,10 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                           </>
                         )}
 
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <div className="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                                <Compass size={20} className="text-indigo-600" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                            <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform flex items-center gap-1.5">
+                                <ImageIcon size={14} className="text-gray-900" />
+                                <span className="text-xs font-bold text-gray-900">Ver Imagem</span>
                             </div>
                         </div>
                       </div>
@@ -349,7 +406,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                 )}
                 {isImgLoading && (<div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-[30] animate-fade-in"><Loader2 size={32} className="text-white animate-spin mb-4" /><p className="text-[10px] font-bold text-white uppercase tracking-widest">{t.creativesStep.renderingVisual}</p></div>)}
               </div>
-              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between gap-1 flex-wrap">
                 {creative.imageUrl ? (
                   (() => {
                     const activeIndex = creative.activeImageIndex || 0;
@@ -357,14 +414,16 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                     const activeUrl = urlsList[activeIndex] || creative.imageUrl;
 
                     return (
-                      <button 
-                        onClick={() => handleDownloadImage(activeUrl, `Ad-${creative.id}-${activeIndex + 1}.png`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0"
-                        title={t.common.download}
-                      >
-                        <Download size={12} />
-                        <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.download}</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => handleDownloadImage(activeUrl, `Ad-${creative.id}-${activeIndex + 1}.png`)}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0"
+                          title={t.common.download}
+                        >
+                          <Download size={12} />
+                          <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.download}</span>
+                        </button>
+                      </div>
                     );
                   })()
                 ) : (
@@ -376,7 +435,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                 <button
                   onClick={() => onGenerateImage(creative.id, creative.visualPrompt, creativeBase, globalShotType, creative.style)}
                   disabled={isImgLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0 disabled:opacity-50"
                 >
                   <RefreshCw size={12} className={isImgLoading ? 'animate-spin' : ''} />
                   <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.refresh} Visual</span>
@@ -387,6 +446,26 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
           );
         })}
       </div>
+
+      {editingCreative && (() => {
+        const activeEditingCreative = creatives.find(c => c.id === editingCreative.id) || editingCreative;
+        return (
+          <CanvaImageEditorModal
+            isOpen={!!editingCreative}
+            onClose={() => setEditingCreative(null)}
+            creative={activeEditingCreative}
+            language={language}
+            onSaveToCreative={handleSaveToCreative}
+            handleDownloadImage={handleDownloadImage}
+            onGenerateImage={onGenerateImage}
+            onRefreshText={onRefreshText}
+            globalBaseImages={globalBaseImages}
+            globalShotType={globalShotType}
+            isImgLoading={taskQueue.has(`image-gen-${activeEditingCreative.id}`)}
+            isTextLoading={taskQueue.has(`creative-refresh-text-${activeEditingCreative.id}`)}
+          />
+        );
+      })()}
     </div>
   );
 };

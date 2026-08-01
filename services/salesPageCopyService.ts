@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { Language, LandingPageCopy, BuilderSectionId } from "../types";
+import { Language, LandingPageCopy, BuilderSectionId, Product } from "../types";
 import { getAI, extractJSON, sanitizeContext, getLangName } from "./aiCore";
 
 // Helper to construct the dynamic schema based on selected sections
@@ -671,7 +671,7 @@ PRODUCT CONTEXT:
 Name: ${product.name}
 Description: ${product.description}
 Goal: ${product.goal}
-Target Audience: ${product.targetAudience}
+Target Audience: ${product.audienceType || product.decisionMaker || ''}
 
 PAGE OBJECTIVE: ${pageObjective}
 LANGUAGE: ${getLangName(language)}
