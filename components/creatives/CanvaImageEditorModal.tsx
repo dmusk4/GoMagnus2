@@ -4,9 +4,11 @@ import {
   Move, Layers, AlignLeft, AlignCenter, AlignRight, Bold, 
   Italic, Palette, RotateCcw, Check, ChevronUp, ChevronDown, 
   Pencil, Eye, Layout, ShieldAlert, Zap, MessageSquare,
-  RefreshCw, Loader2, ImageIcon, Smile, RotateCw
+  RefreshCw, Loader2, ImageIcon, Smile, RotateCw,
+  Sun, Contrast, Droplet, Sliders
 } from 'lucide-react';
 import { Creative, Language } from '../../types';
+import { imageUrlToBase64 } from '../../services/aiCore';
 
 export interface TextLayer {
   id: string;
@@ -137,15 +139,19 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
 
   const [layers, setLayers] = useState<TextLayer[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
   const dragStartPos = useRef<{ x: number; y: number; layerX: number; layerY: number } | null>(null);
 
-  // Background Image Scale, Offset and Rotation
+  // Background Image Scale, Offset, Rotation & Filters (Brightness, Contrast, Saturation)
   const [bgScale, setBgScale] = useState<number>(1);
   const [bgOffsetX, setBgOffsetX] = useState<number>(0);
   const [bgOffsetY, setBgOffsetY] = useState<number>(0);
   const [bgRotation, setBgRotation] = useState<number>(0);
+  const [bgBrightness, setBgBrightness] = useState<number>(100);
+  const [bgContrast, setBgContrast] = useState<number>(100);
+  const [bgSaturation, setBgSaturation] = useState<number>(100);
 
   // Resizing layer state (width or font size)
   const [resizingLayer, setResizingLayer] = useState<{
@@ -157,25 +163,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
     initialFontSize: number;
   } | null>(null);
 
-  const isNoTextOverlayStyle = React.useMemo(() => {
-    const s = (creative.style || '').toLowerCase();
-    return s.includes('native') || s.includes('direct') || s.includes('product-first');
-  }, [creative.style]);
-
-  const [promptText, setPromptText] = useState(() => {
-    let p = creative.visualPrompt || '';
-    const s = (creative.style || '').toLowerCase();
-    if (s.includes('native') || s.includes('direct')) {
-      p = p.replace(/e uma faixa ou caixa escura na base da imagem com um título em letras brancas maiúsculas e negrito no estilo notícia de impacto,?/gi, '');
-      p = p.replace(/com um título em letras brancas[^,.]*,?/gi, '');
-      if (!p.toLowerCase().includes('sem texto') && !p.toLowerCase().includes('no text')) {
-        p = p.trim() 
-          ? `${p.trim()} CRITICAL: NÃO colocar texto embutido na imagem. Fotografia limpa sem texto.`
-          : 'Foto limpa e realista do produto. CRITICAL: NÃO colocar texto embutido na imagem.';
-      }
-    }
-    return p;
-  });
+  const [promptText, setPromptText] = useState(() => creative.visualPrompt || '');
 
   const [negativeSpacePos, setNegativeSpacePos] = useState<'auto' | 'top' | 'bottom' | 'left' | 'right' | 'center'>('auto');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -286,6 +274,28 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
     };
   }, [resizingLayer]);
 
+  // Keyboard shortcut listener to delete selected text layer on Delete / Backspace key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedLayerId) return;
+      const activeEl = document.activeElement;
+      const isEditingInput = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement).isContentEditable
+      );
+      if (isEditingInput) return;
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleDeleteLayer(selectedLayerId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedLayerId]);
+
   const handleTriggerImageRefresh = () => {
     if (!onGenerateImage) return;
 
@@ -313,12 +323,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
     }
 
     const basePrompt = promptText.trim() || creative.visualPrompt || 'Anúncio de alta conversão';
-    let finalPrompt = basePrompt + spaceInstruction;
-    if (isNoTextOverlayStyle) {
-      if (!finalPrompt.toLowerCase().includes('sem texto') && !finalPrompt.toLowerCase().includes('no text')) {
-        finalPrompt += " CRITICAL: Do NOT place any text, letters, titles, or headlines embedded on the image itself. Keep the background image strictly visual and clean without embedded text.";
-      }
-    }
+    const finalPrompt = basePrompt + spaceInstruction;
 
     const creativeBase = creative.selectedBaseImages !== undefined
       ? creative.selectedBaseImages 
@@ -366,7 +371,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
           id: 'layer-2',
           text: subText,
           x: 50,
-          y: 82,
+          y: 75,
           fontFamily: 'Inter',
           fontSize: 18,
           color: '#FFFFFF',
@@ -409,7 +414,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
             newLayers.push({
               id: 'layer-2',
               text: creative.subheadline,
-              x: 50, y: 82,
+              x: 50, y: 75,
               fontFamily: 'Inter', fontSize: 18, color: '#FFFFFF',
               bgColor: '#000000', bgOpacity: 0.85, bgPadding: 10, borderRadius: 10,
               fontWeight: 'bold', fontStyle: 'normal', textAlign: 'center', uppercase: false, shadow: true, shadowColor: '#000000', widthPercent: 90
@@ -471,6 +476,9 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
     setLayers(prev => prev.filter(l => l.id !== id));
     if (selectedLayerId === id) {
       setSelectedLayerId(null);
+    }
+    if (editingLayerId === id) {
+      setEditingLayerId(null);
     }
   };
 
@@ -539,7 +547,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
           id: `layer-${Date.now()}-2`,
           text: creative.subheadline || 'Descubra a fórmula exata usada pelos maiores players.',
           x: 50,
-          y: 84,
+          y: 76,
           fontFamily: 'Montserrat',
           fontSize: 18,
           color: '#FFFFFF',
@@ -605,7 +613,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
           id: `layer-${Date.now()}-2`,
           text: creative.headline || 'Acelerador de Vendas Online',
           x: 50,
-          y: 80,
+          y: 76,
           fontFamily: 'Montserrat',
           fontSize: 26,
           color: '#FFFFFF',
@@ -687,11 +695,23 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
   };
 
   // Render high resolution canvas output
-  const renderCanvasOutput = (): Promise<string> => {
+  const renderCanvasOutput = async (): Promise<string> => {
+    let finalSrc = bgImageUrl;
+    if (bgImageUrl && bgImageUrl.startsWith('http')) {
+      try {
+        const b64 = await imageUrlToBase64(bgImageUrl);
+        if (b64) {
+          finalSrc = b64;
+        }
+      } catch (_) {}
+    }
+
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = bgImageUrl;
+      if (!finalSrc.startsWith('data:')) {
+        img.crossOrigin = 'anonymous';
+      }
+      img.src = finalSrc;
 
       img.onload = () => {
         const canvas = hiddenCanvasRef.current || document.createElement('canvas');
@@ -710,6 +730,9 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
         const drawY = (targetHeight - scaledH) / 2 + (bgOffsetY / 100) * targetHeight;
 
         ctx.save();
+        if (bgBrightness !== 100 || bgContrast !== 100 || bgSaturation !== 100) {
+          ctx.filter = `brightness(${bgBrightness}%) contrast(${bgContrast}%) saturate(${bgSaturation}%)`;
+        }
         if (bgRotation) {
           const centerX = targetWidth / 2;
           const centerY = targetHeight / 2;
@@ -746,22 +769,31 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
           const rawText = layer.uppercase ? layer.text.toUpperCase() : layer.text;
           const maxWidth = (layer.widthPercent / 100) * targetWidth;
 
-          // Simple line wrapping
-          const words = rawText.split(' ');
+          // Split by explicit newlines (\n) first to preserve Enter line breaks, then wrap per paragraph
+          const paragraphs = (rawText || '').split('\n');
           const lines: string[] = [];
-          let currentLine = '';
 
-          words.forEach(word => {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && currentLine) {
+          paragraphs.forEach(paragraph => {
+            const words = paragraph.split(' ');
+            let currentLine = '';
+
+            words.forEach(word => {
+              const testLine = currentLine ? `${currentLine} ${word}` : word;
+              const metrics = ctx.measureText(testLine);
+              if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+              } else {
+                currentLine = testLine;
+              }
+            });
+            if (currentLine) {
               lines.push(currentLine);
-              currentLine = word;
-            } else {
-              currentLine = testLine;
+            } else if (words.length === 0 || paragraph === '') {
+              lines.push('');
             }
           });
-          if (currentLine) lines.push(currentLine);
+          if (lines.length === 0) lines.push('');
 
           const lineHeight = fontSize * 1.2;
           const totalTextHeight = lines.length * lineHeight;
@@ -818,7 +850,132 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
         resolve(dataUrl);
       };
 
-      img.onerror = (err) => reject(err);
+      img.onerror = () => {
+        // Fallback: try loading without crossOrigin
+        const fallbackImg = new Image();
+        fallbackImg.onload = () => {
+          try {
+            const canvas = hiddenCanvasRef.current || document.createElement('canvas');
+            const targetWidth = 1080;
+            const targetHeight = Math.round(1080 * (fallbackImg.naturalHeight / fallbackImg.naturalWidth || 1.25));
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject('No canvas context');
+
+            const scaledW = targetWidth * bgScale;
+            const scaledH = targetHeight * bgScale;
+            const drawX = (targetWidth - scaledW) / 2 + (bgOffsetX / 100) * targetWidth;
+            const drawY = (targetHeight - scaledH) / 2 + (bgOffsetY / 100) * targetHeight;
+
+            ctx.save();
+            if (bgBrightness !== 100 || bgContrast !== 100 || bgSaturation !== 100) {
+              ctx.filter = `brightness(${bgBrightness}%) contrast(${bgContrast}%) saturate(${bgSaturation}%)`;
+            }
+            if (bgRotation) {
+              const centerX = targetWidth / 2;
+              const centerY = targetHeight / 2;
+              ctx.translate(centerX, centerY);
+              ctx.rotate((bgRotation * Math.PI) / 180);
+              ctx.translate(-centerX, -centerY);
+            }
+            ctx.drawImage(fallbackImg, drawX, drawY, scaledW, scaledH);
+            ctx.restore();
+
+            // Draw each text layer
+            layers.forEach(layer => {
+              loadGoogleFont(layer.fontFamily);
+
+              const posX = (layer.x / 100) * targetWidth;
+              const posY = (layer.y / 100) * targetHeight;
+              const scaleFactor = targetWidth / 480;
+              const fontSize = Math.round(layer.fontSize * scaleFactor);
+              const padding = Math.round(layer.bgPadding * scaleFactor);
+              const radius = Math.round(layer.borderRadius * scaleFactor);
+
+              ctx.save();
+
+              const rawText = layer.uppercase ? layer.text.toUpperCase() : layer.text;
+              const maxWidth = (layer.widthPercent / 100) * targetWidth;
+
+              const paragraphs = (rawText || '').split('\n');
+              const lines: string[] = [];
+
+              paragraphs.forEach(paragraph => {
+                const words = paragraph.split(' ');
+                let currentLine = '';
+
+                words.forEach(word => {
+                  const testLine = currentLine ? `${currentLine} ${word}` : word;
+                  const metrics = ctx.measureText(testLine);
+                  if (metrics.width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                  } else {
+                    currentLine = testLine;
+                  }
+                });
+                if (currentLine) {
+                  lines.push(currentLine);
+                } else if (words.length === 0 || paragraph === '') {
+                  lines.push('');
+                }
+              });
+              if (lines.length === 0) lines.push('');
+
+              const lineHeight = fontSize * 1.2;
+              const totalTextHeight = lines.length * lineHeight;
+
+              if (layer.bgOpacity > 0) {
+                const bgRgba = hexToRgba(layer.bgColor || '#000000', layer.bgOpacity);
+                ctx.fillStyle = bgRgba;
+                const rectX = posX - padding;
+                const rectY = posY - padding;
+                const rectW = maxWidth + (padding * 2);
+                const rectH = totalTextHeight + (padding * 2);
+
+                if (radius > 0) {
+                  ctx.beginPath();
+                  ctx.roundRect(rectX, rectY, rectW, rectH, radius);
+                  ctx.fill();
+                } else {
+                  ctx.fillRect(rectX, rectY, rectW, rectH);
+                }
+              }
+
+              ctx.font = `${layer.fontStyle === 'italic' ? 'italic ' : ''}${layer.fontWeight === '900' ? '900' : (layer.fontWeight === 'bold' ? 'bold' : 'normal')} ${fontSize}px "${layer.fontFamily}", sans-serif`;
+              ctx.fillStyle = layer.color;
+              ctx.textAlign = (layer.textAlign || 'left') as CanvasTextAlign;
+
+              if (layer.shadow) {
+                ctx.shadowColor = layer.shadowColor || 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = Math.round(8 * scaleFactor);
+                ctx.shadowOffsetX = Math.round(2 * scaleFactor);
+                ctx.shadowOffsetY = Math.round(2 * scaleFactor);
+              } else {
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+              }
+
+              lines.forEach((line, index) => {
+                const lineY = posY + (index + 0.8) * lineHeight;
+                ctx.fillText(line, posX, lineY);
+              });
+
+              ctx.restore();
+            });
+
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        fallbackImg.onerror = (err) => reject(err);
+        fallbackImg.src = finalSrc;
+      };
     });
   };
 
@@ -949,7 +1106,10 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
             <div 
               ref={previewContainerRef}
               className="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-800 max-h-[100%] max-w-[480px] aspect-[4/5] bg-gray-900 flex items-center justify-center group"
-              onClick={() => setSelectedLayerId(null)}
+              onClick={() => {
+                setSelectedLayerId(null);
+                setEditingLayerId(null);
+              }}
             >
               {bgImageUrl ? (
                 <div className="w-full h-full overflow-hidden flex items-center justify-center pointer-events-none">
@@ -958,7 +1118,8 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                     alt="Background preview" 
                     className="w-full h-full object-cover pointer-events-none transition-transform duration-75 origin-center"
                     style={{
-                      transform: `scale(${bgScale}) translate(${bgOffsetX}%, ${bgOffsetY}%) rotate(${bgRotation}deg)`
+                      transform: `scale(${bgScale}) translate(${bgOffsetX}%, ${bgOffsetY}%) rotate(${bgRotation}deg)`,
+                      filter: `brightness(${bgBrightness}%) contrast(${bgContrast}%) saturate(${bgSaturation}%)`
                     }}
                   />
                 </div>
@@ -987,6 +1148,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
               {/* Render Draggable Text Layers */}
               {layers.map((layer) => {
                 const isSelected = selectedLayerId === layer.id;
+                const isEditing = editingLayerId === layer.id;
                 loadGoogleFont(layer.fontFamily);
 
                 const bgRgba = hexToRgba(layer.bgColor || '#000000', layer.bgOpacity);
@@ -994,10 +1156,19 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                 return (
                   <div
                     key={layer.id}
-                    onMouseDown={(e) => handleMouseDown(e, layer.id)}
+                    onMouseDown={(e) => {
+                      if (!isEditing) {
+                        handleMouseDown(e, layer.id);
+                      }
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedLayerId(layer.id);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedLayerId(layer.id);
+                      setEditingLayerId(layer.id);
                     }}
                     style={{
                       left: `${layer.x}%`,
@@ -1009,32 +1180,81 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                       backgroundColor: layer.bgOpacity > 0 ? bgRgba : 'transparent',
                       padding: `${layer.bgPadding}px`,
                       borderRadius: `${layer.borderRadius}px`,
-                      cursor: draggedLayerId === layer.id ? 'grabbing' : 'grab',
-                      userSelect: 'none',
-                      touchAction: 'none'
+                      cursor: isEditing ? 'text' : (draggedLayerId === layer.id ? 'grabbing' : 'grab'),
+                      userSelect: isEditing ? 'text' : 'none',
+                      touchAction: isEditing ? 'auto' : 'none'
                     }}
-                    className={`absolute z-10 select-none ${
+                    className={`absolute z-10 ${
                       isSelected 
                         ? 'outline outline-2 outline-white ring-1 ring-black/80 shadow-2xl' 
                         : 'hover:outline hover:outline-1 hover:outline-white/40 cursor-pointer'
                     }`}
                   >
-                    <p
-                      style={{
-                        fontFamily: `"${layer.fontFamily}", sans-serif`,
-                        fontSize: `${layer.fontSize}px`,
-                        color: layer.color,
-                        fontWeight: layer.fontWeight === '900' ? 900 : (layer.fontWeight === 'bold' ? 'bold' : 'normal'),
-                        fontStyle: layer.fontStyle,
-                        textTransform: layer.uppercase ? 'uppercase' : 'none',
-                        textShadow: layer.shadow ? `2px 2px 8px ${layer.shadowColor || 'rgba(0,0,0,0.8)'}` : 'none',
-                        lineHeight: 1.25,
-                        wordBreak: 'break-word'
-                      }}
-                      className="m-0 select-none pointer-events-none font-sans"
-                    >
-                      {layer.text || 'Texto Exemplo'}
-                    </p>
+                    {isEditing ? (
+                      <textarea
+                        autoFocus
+                        value={layer.text}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLayers(prev => prev.map(l => l.id === layer.id ? { ...l, text: val } : l));
+                        }}
+                        onBlur={() => setEditingLayerId(null)}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) {
+                            setEditingLayerId(null);
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onFocus={(e) => {
+                          const len = e.target.value.length;
+                          e.target.setSelectionRange(len, len);
+                        }}
+                        style={{
+                          fontFamily: `"${layer.fontFamily}", sans-serif`,
+                          fontSize: `${layer.fontSize}px`,
+                          color: layer.color,
+                          fontWeight: layer.fontWeight === '900' ? 900 : (layer.fontWeight === 'bold' ? 'bold' : 'normal'),
+                          fontStyle: layer.fontStyle,
+                          textTransform: layer.uppercase ? 'uppercase' : 'none',
+                          textShadow: layer.shadow ? `2px 2px 8px ${layer.shadowColor || 'rgba(0,0,0,0.8)'}` : 'none',
+                          lineHeight: 1.25,
+                          textAlign: layer.textAlign,
+                          width: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          resize: 'none',
+                          padding: 0,
+                          margin: 0,
+                          overflow: 'hidden',
+                          whiteSpace: 'pre-wrap',
+                          minHeight: `${Math.max(16, layer.fontSize * 1.25)}px`
+                        }}
+                        className="w-full font-sans select-text pointer-events-auto cursor-text focus:outline-none focus:ring-0 whitespace-pre-wrap"
+                        rows={Math.max(1, (layer.text || '').split('\n').length)}
+                      />
+                    ) : (
+                      <p
+                        style={{
+                          fontFamily: `"${layer.fontFamily}", sans-serif`,
+                          fontSize: `${layer.fontSize}px`,
+                          color: layer.color,
+                          fontWeight: layer.fontWeight === '900' ? 900 : (layer.fontWeight === 'bold' ? 'bold' : 'normal'),
+                          fontStyle: layer.fontStyle,
+                          textTransform: layer.uppercase ? 'uppercase' : 'none',
+                          textShadow: layer.shadow ? `2px 2px 8px ${layer.shadowColor || 'rgba(0,0,0,0.8)'}` : 'none',
+                          lineHeight: 1.25,
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                          minHeight: layer.text ? 'auto' : `${Math.max(16, layer.fontSize * 1.2)}px`
+                        }}
+                        className="m-0 select-none pointer-events-none font-sans whitespace-pre-wrap"
+                      >
+                        {layer.text}
+                      </p>
+                    )}
 
                     {isSelected && (
                       <>
@@ -1043,9 +1263,10 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                         <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-gray-950 rounded-xs pointer-events-none shadow" />
                         <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-gray-950 rounded-xs pointer-events-none shadow" />
 
-                        {/* Top Refresh Icon Button */}
-                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 pointer-events-auto">
+                        {/* Top Action Buttons (Refresh AI + Delete) */}
+                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-auto z-20">
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleTriggerTextRefresh();
@@ -1055,6 +1276,17 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                             className="w-6 h-6 rounded-full bg-white hover:bg-gray-100 text-gray-950 flex items-center justify-center shadow-md border border-gray-900 cursor-pointer transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
                           >
                             <RefreshCw size={11} className={isTextLoading ? 'animate-spin' : ''} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLayer(layer.id);
+                            }}
+                            title="Apagar elemento de texto (Delete)"
+                            className="w-6 h-6 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-md border border-gray-900 cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                          >
+                            <Trash2 size={11} />
                           </button>
                         </div>
 
@@ -1121,105 +1353,176 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
           {/* Right Editor Panel */}
           <div className="w-[380px] bg-gray-950 border-l border-gray-800 p-5 flex flex-col gap-4 overflow-y-auto shrink-0">
             
-            {/* Background Image Zoom, Rotation & Position Controls */}
+            {/* Background Image Zoom, Rotation, Position & Filters Controls */}
             <div className="p-3.5 bg-gray-900 border border-gray-800/90 rounded-2xl space-y-3 shrink-0 shadow-sm">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <ImageIcon size={14} className="text-gray-400" /> Tamanho, Posição & Rotação
+                  <Sliders size={14} className="text-gray-400" /> Tamanho, Rotação & Filtros
                 </label>
-                {(bgScale !== 1 || bgOffsetX !== 0 || bgOffsetY !== 0 || bgRotation !== 0) && (
+                {(bgScale !== 1 || bgOffsetX !== 0 || bgOffsetY !== 0 || bgRotation !== 0 || bgBrightness !== 100 || bgContrast !== 100 || bgSaturation !== 100) && (
                   <button
-                    onClick={() => { setBgScale(1); setBgOffsetX(0); setBgOffsetY(0); setBgRotation(0); }}
-                    className="text-[10px] text-gray-400 hover:text-white flex items-center gap-1 font-mono transition-colors"
+                    onClick={() => { 
+                      setBgScale(1); 
+                      setBgOffsetX(0); 
+                      setBgOffsetY(0); 
+                      setBgRotation(0); 
+                      setBgBrightness(100);
+                      setBgContrast(100);
+                      setBgSaturation(100);
+                    }}
+                    className="text-[10px] text-gray-400 hover:text-white flex items-center gap-1 font-mono transition-colors cursor-pointer"
                   >
                     <RotateCcw size={10} /> Resetar
                   </button>
                 )}
               </div>
 
-              <div>
-                <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                  <span>Zoom / Escala</span>
-                  <span className="text-gray-200 font-mono text-[11px]">{Math.round(bgScale * 100)}%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setBgScale(prev => Math.max(1, Number((prev - 0.1).toFixed(2))))}
-                    className="w-7 h-7 rounded-lg bg-gray-950 border border-gray-800 text-gray-300 hover:text-white text-xs font-bold shrink-0 flex items-center justify-center"
-                    title="Diminuir Zoom"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="range"
-                    min={1.0}
-                    max={2.5}
-                    step={0.05}
-                    value={bgScale}
-                    onChange={(e) => setBgScale(Number(e.target.value))}
-                    className="w-full accent-gray-200 cursor-pointer"
-                  />
-                  <button
-                    onClick={() => setBgScale(prev => Math.min(2.5, Number((prev + 0.1).toFixed(2))))}
-                    className="w-7 h-7 rounded-lg bg-gray-950 border border-gray-800 text-gray-300 hover:text-white text-xs font-bold shrink-0 flex items-center justify-center"
-                    title="Aumentar Zoom"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Background Rotation */}
+              {/* Brightness / Brilho */}
               <div>
                 <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
                   <span className="flex items-center gap-1">
-                    <RotateCw size={11} className="text-gray-400" />
-                    <span>Rotação da Imagem</span>
+                    <Sun size={11} className="text-gray-400" />
+                    <span>Brilho</span>
                   </span>
-                  <span className="text-gray-200 font-mono text-[11px]">{bgRotation}°</span>
+                  <span className="text-gray-200 font-mono text-[11px]">{bgBrightness}%</span>
                 </div>
                 <input
                   type="range"
-                  min={-180}
+                  min={20}
                   max={180}
-                  value={bgRotation}
-                  onChange={(e) => setBgRotation(Number(e.target.value))}
+                  step={1}
+                  value={bgBrightness}
+                  onChange={(e) => setBgBrightness(Number(e.target.value))}
                   className="w-full accent-gray-200 cursor-pointer"
                 />
               </div>
 
-              {bgScale > 1 && (
-                <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-gray-800/80 animate-fade-in">
-                  <div>
-                    <div className="flex justify-between text-[10px] text-gray-400 uppercase mb-1">
-                      <span>Posição X</span>
-                      <span className="font-mono text-[9px] text-gray-500">{bgOffsetX}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={-50}
-                      max={50}
-                      value={bgOffsetX}
-                      onChange={(e) => setBgOffsetX(Number(e.target.value))}
-                      className="w-full accent-gray-200 cursor-pointer"
-                    />
+              {/* Contrast / Contraste */}
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                  <span className="flex items-center gap-1">
+                    <Contrast size={11} className="text-gray-400" />
+                    <span>Contraste</span>
+                  </span>
+                  <span className="text-gray-200 font-mono text-[11px]">{bgContrast}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={20}
+                  max={180}
+                  step={1}
+                  value={bgContrast}
+                  onChange={(e) => setBgContrast(Number(e.target.value))}
+                  className="w-full accent-gray-200 cursor-pointer"
+                />
+              </div>
+
+              {/* Saturation / Saturação */}
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                  <span className="flex items-center gap-1">
+                    <Droplet size={11} className="text-gray-400" />
+                    <span>Saturação</span>
+                  </span>
+                  <span className="text-gray-200 font-mono text-[11px]">{bgSaturation}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={200}
+                  step={1}
+                  value={bgSaturation}
+                  onChange={(e) => setBgSaturation(Number(e.target.value))}
+                  className="w-full accent-gray-200 cursor-pointer"
+                />
+              </div>
+
+              <div className="border-t border-gray-800/80 pt-2 space-y-3">
+                {/* Zoom / Escala */}
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                    <span>Zoom / Escala</span>
+                    <span className="text-gray-200 font-mono text-[11px]">{Math.round(bgScale * 100)}%</span>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-[10px] text-gray-400 uppercase mb-1">
-                      <span>Posição Y</span>
-                      <span className="font-mono text-[9px] text-gray-500">{bgOffsetY}%</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setBgScale(prev => Math.max(1, Number((prev - 0.1).toFixed(2))))}
+                      className="w-7 h-7 rounded-lg bg-gray-950 border border-gray-800 text-gray-300 hover:text-white text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer"
+                      title="Diminuir Zoom"
+                    >
+                      -
+                    </button>
                     <input
                       type="range"
-                      min={-50}
-                      max={50}
-                      value={bgOffsetY}
-                      onChange={(e) => setBgOffsetY(Number(e.target.value))}
+                      min={1.0}
+                      max={2.5}
+                      step={0.05}
+                      value={bgScale}
+                      onChange={(e) => setBgScale(Number(e.target.value))}
                       className="w-full accent-gray-200 cursor-pointer"
                     />
+                    <button
+                      onClick={() => setBgScale(prev => Math.min(2.5, Number((prev + 0.1).toFixed(2))))}
+                      className="w-7 h-7 rounded-lg bg-gray-950 border border-gray-800 text-gray-300 hover:text-white text-xs font-bold shrink-0 flex items-center justify-center cursor-pointer"
+                      title="Aumentar Zoom"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
-              )}
+
+                {/* Background Rotation */}
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                    <span className="flex items-center gap-1">
+                      <RotateCw size={11} className="text-gray-400" />
+                      <span>Rotação da Imagem</span>
+                    </span>
+                    <span className="text-gray-200 font-mono text-[11px]">{bgRotation}°</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={-180}
+                    max={180}
+                    value={bgRotation}
+                    onChange={(e) => setBgRotation(Number(e.target.value))}
+                    className="w-full accent-gray-200 cursor-pointer"
+                  />
+                </div>
+
+                {bgScale > 1 && (
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-gray-800/80 animate-fade-in">
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-400 uppercase mb-1">
+                        <span>Posição X</span>
+                        <span className="font-mono text-[9px] text-gray-500">{bgOffsetX}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={-50}
+                        max={50}
+                        value={bgOffsetX}
+                        onChange={(e) => setBgOffsetX(Number(e.target.value))}
+                        className="w-full accent-gray-200 cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-400 uppercase mb-1">
+                        <span>Posição Y</span>
+                        <span className="font-mono text-[9px] text-gray-500">{bgOffsetY}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={-50}
+                        max={50}
+                        value={bgOffsetY}
+                        onChange={(e) => setBgOffsetY(Number(e.target.value))}
+                        className="w-full accent-gray-200 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Background Image AI Refresh Card */}
@@ -1454,16 +1757,27 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                         <span>Refresh IA</span>
                       </button>
                     </span>
-                    <span className="text-gray-500 font-mono text-[9px]">{selectedLayer.text.length} chars</span>
+                    <span className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLayer(selectedLayer.id)}
+                        title="Apagar elemento de texto (Delete)"
+                        className="px-2 py-0.5 bg-red-950/80 hover:bg-red-900 text-red-300 hover:text-red-100 rounded transition-all flex items-center gap-1 text-[9px] font-medium border border-red-800/80 cursor-pointer"
+                      >
+                        <Trash2 size={10} />
+                        <span>Apagar</span>
+                      </button>
+                      <span className="text-gray-500 font-mono text-[9px]">{selectedLayer.text.length} chars</span>
+                    </span>
                   </label>
                   
                   <div className="flex gap-2 items-start relative">
                     <textarea
-                      rows={2}
+                      rows={Math.max(2, (selectedLayer.text || '').split('\n').length)}
                       value={selectedLayer.text}
                       onChange={(e) => updateSelectedLayer({ text: e.target.value })}
-                      placeholder="Digite o texto do anúncio..."
-                      className="flex-1 bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs text-white outline-none focus:border-gray-600 transition-all resize-none min-h-[64px]"
+                      placeholder="Digite o texto do anúncio... (Enter para quebra de linha)"
+                      className="flex-1 bg-gray-950 border border-gray-800 rounded-xl p-3 text-xs text-white outline-none focus:border-gray-600 transition-all resize-none min-h-[64px] whitespace-pre-wrap"
                     />
                     
                     {/* Emoji Picker Selector Box next to input */}
@@ -1703,7 +2017,7 @@ export const CanvaImageEditorModal: React.FC<CanvaImageEditorModalProps> = ({
                         Centro
                       </button>
                       <button
-                        onClick={() => updateSelectedLayer({ y: 84, x: 50 })}
+                        onClick={() => updateSelectedLayer({ y: 76, x: 50 })}
                         className="px-2.5 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-gray-300 hover:text-white hover:border-gray-700"
                       >
                         Base

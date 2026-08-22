@@ -127,28 +127,48 @@ export const generateMarketPatterns = async (name: string, description: string, 
         },
         required: ["workingNow", "saturated", "opportunities"]
     };
+    const contents = `You are a forensic market analyst. Analyze the market conditions for "${name}" in "${location}".
+    
+    DESCRIPTION: ${description}
+    
+    CRITICAL INSTRUCTIONS:
+    1. RESEARCH REALITY: Identify actual trends and saturation in this niche.
+    2. WORKING NOW: Identify specific strategies (not generic) currently working for competitors in ${location}.
+    3. SATURATED: Find hooks or angles that are overused in this industry.
+    4. OPPORTUNITIES: Identify unmet needs or gaps based on real customer complaints/reviews.
+    
+    Answer strictly in ${getLangName(lang)}.`;
+
     try {
         const response = await ai.models.generateContent({
             model: getModel(mode),
-            contents: `You are a forensic market analyst. Use Google Search to analyze the REAL market conditions for "${name}" in "${location}".
-            
-            DESCRIPTION: ${description}
-            
-            CRITICAL INSTRUCTIONS:
-            1. RESEARCH REALITY: Use Google Search to find actual trends and saturation in this niche.
-            2. WORKING NOW: Identify specific strategies (not generic) currently working for competitors in ${location}.
-            3. SATURATED: Find hooks or angles that are overused in this industry.
-            4. OPPORTUNITIES: Identify unmet needs or gaps based on real customer complaints/reviews found online.
-            
-            Answer strictly in ${getLangName(lang)}.`,
+            contents,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema, 
                 tools: [{googleSearch: {}}]
             }
         });
+        const parsed = extractJSON(response.text);
+        if (parsed) return parsed;
+    } catch (e) {
+        console.warn("generateMarketPatterns failed with search tool, retrying without search tool...", e);
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: schema
+            }
+        });
         return extractJSON(response.text);
-    } catch (e) { return null; }
+    } catch (e) {
+        console.error("generateMarketPatterns fallback failed:", e);
+        return null;
+    }
 }
 
 export const generateLeanCanvas = async (name: string, description: string, lang: Language, mode: GenerationMode): Promise<any> => {
@@ -184,7 +204,10 @@ export const generateLeanCanvas = async (name: string, description: string, lang
             }
         });
         return extractJSON(response.text);
-    } catch (e) { return null; }
+    } catch (e) {
+        console.error("generateLeanCanvas failed:", e);
+        return null;
+    }
 }
 
 export const generateBrandReputation = async (name: string, url: string, lang: Language, mode: GenerationMode): Promise<any> => {
@@ -198,22 +221,42 @@ export const generateBrandReputation = async (name: string, url: string, lang: L
         },
         required: ["positives", "negatives", "sentimentScore"]
     };
+    const contents = `Realiza uma pesquisa sobre a reputação da marca "${name}".
+    Analisa reviews genuínos e sentimentos online. 
+    INSTRUÇÃO: Fornece insights diretos e acionáveis. Não é necessário repetir o nome da marca em cada ponto da lista. 
+    O campo "sentimentScore" deve ser obrigatoriamente um número inteiro de 0 a 100, representando o nível de aprovação pública. 
+    Não dês respostas genéricas. Se a marca não tiver reviews suficientes, analisa a reputação do nicho específico para produtos como o de "${name}". Answer strictly in ${getLangName(lang)}.`;
+
     try {
         const response = await ai.models.generateContent({
             model: getModel(mode),
-            contents: `Realiza uma pesquisa real e profunda utilizando o Google Search sobre a reputação exata da marca "${name}".
-            Analisa reviews genuínos e sentimentos online. 
-            INSTRUÇÃO: Fornece insights diretos e acionáveis. Não é necessário repetir o nome da marca em cada ponto da lista. 
-            O campo "sentimentScore" deve ser obrigatoriamente um número inteiro de 0 a 100, representando o nível de aprovação pública. 
-            Não dês respostas genéricas. Se a marca não tiver reviews suficientes, analisa a reputação do nicho específico para produtos como o de "${name}". Answer strictly in ${getLangName(lang)}.`,
+            contents,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema, 
                 tools: [{googleSearch: {}}]
             }
         });
+        const parsed = extractJSON(response.text);
+        if (parsed) return parsed;
+    } catch (e) {
+        console.warn("generateBrandReputation failed with search tool, retrying without search tool...", e);
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: schema
+            }
+        });
         return extractJSON(response.text);
-    } catch (e) { return null; }
+    } catch (e) {
+        console.error("generateBrandReputation fallback failed:", e);
+        return null;
+    }
 }
 
 /**

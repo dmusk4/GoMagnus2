@@ -9,7 +9,7 @@ import { Language, GenerationMode } from "../types";
 export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getModel = (mode: GenerationMode): string => {
-    return mode === 'Fast' ? 'gemini-3.5-flash' : 'gemini-3.1-pro-preview';
+    return mode === 'Fast' ? 'gemini-3.7-flash' : 'gemini-3.1-pro-preview';
 };
 
 /**
@@ -224,7 +224,8 @@ export const fetchPageMetadata = async (url: string): Promise<any> => {
  * Significantly reduces token usage/payload size for API calls.
  */
 const compressImage = async (file: Blob, maxDimension = 1024, quality = 0.8): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
+    if (!file || file.size <= 300 * 1024) return file;
+    return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -234,6 +235,8 @@ const compressImage = async (file: Blob, maxDimension = 1024, quality = 0.8): Pr
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
+
+                if (!width || !height) return resolve(file);
 
                 if (width > height) {
                     if (width > maxDimension) {
@@ -250,55 +253,127 @@ const compressImage = async (file: Blob, maxDimension = 1024, quality = 0.8): Pr
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
+                if (!ctx) return resolve(file);
+
+                ctx.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob(
                     (blob) => {
                         if (blob) resolve(blob);
-                        else reject(new Error('Canvas to Blob failed'));
+                        else resolve(file);
                     },
                     'image/jpeg',
                     quality
                 );
             };
-            img.onerror = (error) => reject(error);
+            img.onerror = () => resolve(file);
         };
-        reader.onerror = (error) => reject(error);
+        reader.onerror = () => resolve(file);
     });
 };
 
 export const imageUrlToBase64 = async (url: string): Promise<string | null> => {
-  try {
-    let response;
+  if (!url) return null;
+
+  // If already base64 data URL
+  if (url.startsWith('data:')) {
+    return url;
+  }
+
+  // If local blob URL
+  if (url.startsWith('blob:')) {
     try {
-        response = await fetch(url);
+      const response = await fetch(url);
+      if (response.ok) {
+        const blob = await response.blob();
+        let compressedBlob = blob;
+        try {
+          compressedBlob = await compressImage(blob);
+        } catch (_) {}
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(compressedBlob);
+        });
+      }
+    } catch (_) {}
+  }
+
+  try {
+    let response: Response | null = null;
+    try {
+      response = await fetch(url);
     } catch (e) {
-        // Fallback to proxy if direct fetch fails (likely CORS)
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        response = await fetch(proxyUrl);
+      // Direct fetch failed (likely CORS)
     }
-    
-    if (!response.ok) {
-        // Fallback to proxy if direct fetch returned an error
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        response = await fetch(proxyUrl);
-        if (!response.ok) {
-            console.error("Failed to fetch image, status:", response.status);
-            return null;
-        }
+
+    if (!response || !response.ok) {
+      // Try multiple CORS proxies in order
+      const proxies = [
+        (target: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+        (target: string) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
+        (target: string) => `https://wsrv.nl/?url=${encodeURIComponent(target)}`
+      ];
+
+      for (const proxyFn of proxies) {
+        try {
+          const proxyUrl = proxyFn(url);
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            response = res;
+            break;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (!response || !response.ok) {
+      // Try Canvas Image loading fallback as last resort
+      try {
+        const fallbackBase64 = await new Promise<string | null>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth || img.width || 500;
+              canvas.height = img.naturalHeight || img.height || 500;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+              } else {
+                resolve(null);
+              }
+            } catch (_) {
+              resolve(null);
+            }
+          };
+          img.onerror = () => resolve(null);
+          img.src = url;
+        });
+        if (fallbackBase64) return fallbackBase64;
+      } catch (_) {}
+
+      console.warn("Could not fetch image from url:", url);
+      return null;
     }
 
     const blob = await response.blob();
-    // Compress before converting to base64
-    const compressedBlob = await compressImage(blob);
-    return new Promise((resolve, reject) => {
+    let compressedBlob = blob;
+    try {
+      compressedBlob = await compressImage(blob);
+    } catch (_) {}
+
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(compressedBlob);
     });
   } catch (e) {
-    console.error("Error fetching image from url:", url, e);
+    console.warn("Error processing image from url:", url, e);
     return null;
   }
 };

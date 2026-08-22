@@ -503,7 +503,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             setGlobalShotType={setMetaShotType}
             excludeBuyerContext={excludeBuyerContext}
             setExcludeBuyerContext={setExcludeBuyerContext}
-            onGenerateImage={(id, prompt, base, comp) => props.onGenerateImage(id, prompt, base, comp, activeStyle)}
+            onGenerateImage={(id, prompt, base, comp, style) => props.onGenerateImage(id, prompt, base, comp, style || activeStyle)}
             setLightboxImage={setLightboxImage}
             metaImagesCount={metaImagesCount}
             onUpdateMetaImagesCount={setMetaImagesCount}

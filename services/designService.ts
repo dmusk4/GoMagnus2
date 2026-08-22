@@ -213,7 +213,7 @@ export const analyzeDesignReferences = async (imageB64s: string[]): Promise<Bran
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.7-flash',
             contents: {
                 parts: [
                     ...validParts,
@@ -408,7 +408,7 @@ export const generateVibecodingPrompt = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.7-flash',
             contents: `Generate the Ultimate Vibecoding Prompt for this project.\n\nCONTEXT:\n${context}`,
             config: {
                 systemInstruction: systemInstruction,
@@ -602,7 +602,7 @@ export const generateElementorSiteSettings = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-3.7-flash',
             contents: `Generate Elementor Site Settings JSON.\n\nCONTEXT:\n${context}`,
             config: {
                 responseMimeType: "application/json",

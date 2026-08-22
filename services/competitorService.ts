@@ -81,35 +81,55 @@ export const generateCompetitorAnalysis = async (
     Target Market Location: ${location}
     `;
 
+    const contents = `You are a specialized Market Research Analyst. Identify DIRECT COMPETITORS for the product defined below.
+
+    ${strictContext}
+
+    CRITICAL NICHE ENFORCEMENT RULES:
+    1. READ the "Core Function/Description" above carefully. The competitors MUST solve the SAME problem or sell the SAME type of product.
+    2. IF the product is a "Service" (e.g. Agency), do NOT return "Software" (SaaS) competitors unless they are direct substitutes.
+    3. IF the product is "Physical" (e.g. Shoes), do NOT return "Repair Shops" or "Blogs".
+    4. IGNORE the product URL if it conflicts with the Description. The Description is the Source of Truth.
+    
+    VERIFICATION TASKS:
+    1. Find 3-4 REAL active companies in ${location}.
+    2. DOUBLE CHECK: Does this competitor actually do what the target product does? If no, discard it.
+    3. Find their official URL and at least one social link.
+    4. Look for real pricing and reviews.
+    5. Find recent strategic moves (acquisitions, new features, pivots) for each competitor (only if they exist).
+
+    Output strictly in ${getLangName(lang)}.`;
+
     try {
         const response = await ai.models.generateContent({
             model: getModel(mode),
-            contents: `You are a specialized Market Research Analyst. Perform a Google Search to find DIRECT COMPETITORS for the product defined below.
-
-            ${strictContext}
-
-            CRITICAL NICHE ENFORCEMENT RULES:
-            1. READ the "Core Function/Description" above carefully. The competitors MUST solve the SAME problem or sell the SAME type of product.
-            2. IF the product is a "Service" (e.g. Agency), do NOT return "Software" (SaaS) competitors unless they are direct substitutes.
-            3. IF the product is "Physical" (e.g. Shoes), do NOT return "Repair Shops" or "Blogs".
-            4. IGNORE the product URL if it conflicts with the Description. The Description is the Source of Truth.
-            
-            VERIFICATION TASKS:
-            1. Find 3-4 REAL active companies in ${location}.
-            2. DOUBLE CHECK: Does this competitor actually do what the target product does? If no, discard it.
-            3. Find their official URL and at least one social link.
-            4. Look for real pricing and reviews.
-            5. Find recent strategic moves (acquisitions, new features, pivots) for each competitor (only if they exist).
-
-            Output strictly in ${getLangName(lang)}.`,
+            contents,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema, 
                 tools: [{googleSearch: {}}]
             }
         });
-        return extractJSON(response.text);
-    } catch (e) { return { competitors: [] }; }
+        const parsed = extractJSON(response.text);
+        if (parsed) return parsed;
+    } catch (e) {
+        console.warn("generateCompetitorAnalysis failed with search tool, retrying without search tool...", e);
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: schema
+            }
+        });
+        return extractJSON(response.text) || { competitors: [] };
+    } catch (e) {
+        console.error("generateCompetitorAnalysis fallback failed:", e);
+        return { competitors: [] };
+    }
 }
 
 export const generatePricingSuggestions = async (
@@ -191,3 +211,148 @@ export const generatePricingSuggestions = async (
         return extractJSON(response.text);
     } catch (e) { return null; }
 }
+
+export const generateMetaAdsLibraryAnalysis = async (
+    productName: string,
+    productDescription: string,
+    keywords: string,
+    location: string,
+    competitors: string[],
+    lang: Language,
+    mode: GenerationMode
+): Promise<any> => {
+    const ai = getAI();
+    const schema = {
+        type: Type.OBJECT,
+        properties: {
+            overallLandscapeSummary: { type: Type.STRING },
+            dominantFormats: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        format: { type: Type.STRING },
+                        percentage: { type: Type.NUMBER },
+                        rationale: { type: Type.STRING }
+                    },
+                    required: ["format", "percentage", "rationale"]
+                }
+            },
+            topAnalyzedAds: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        competitorName: { type: Type.STRING },
+                        adHeadline: { type: Type.STRING },
+                        format: { type: Type.STRING },
+                        hookType: { type: Type.STRING },
+                        visualHookDescription: { type: Type.STRING },
+                        copyAngle: { type: Type.STRING },
+                        ctaText: { type: Type.STRING },
+                        scores: {
+                            type: Type.OBJECT,
+                            properties: {
+                                hookScore: { type: Type.NUMBER },
+                                copyPersuasionScore: { type: Type.NUMBER },
+                                visualImpactScore: { type: Type.NUMBER },
+                                offerClarityScore: { type: Type.NUMBER },
+                                overallScore: { type: Type.NUMBER }
+                            },
+                            required: ["hookScore", "copyPersuasionScore", "visualImpactScore", "offerClarityScore", "overallScore"]
+                        },
+                        strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        whyItWorks: { type: Type.STRING }
+                    },
+                    required: ["id", "competitorName", "adHeadline", "format", "hookType", "visualHookDescription", "copyAngle", "ctaText", "scores", "strengths", "weaknesses", "whyItWorks"]
+                }
+            },
+            winningPatterns: {
+                type: Type.OBJECT,
+                properties: {
+                    bestVisualHooks: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    winningCopyAngles: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    topCallToActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    commonOffersAndPricing: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["bestVisualHooks", "winningCopyAngles", "topCallToActions", "commonOffersAndPricing"]
+            },
+            strategicRecommendations: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        impact: { type: Type.STRING },
+                        actionableHookToTry: { type: Type.STRING }
+                    },
+                    required: ["title", "description", "impact", "actionableHookToTry"]
+                }
+            }
+        },
+        required: ["overallLandscapeSummary", "dominantFormats", "topAnalyzedAds", "winningPatterns", "strategicRecommendations"]
+    };
+
+    const prompt = `Act as a senior Performance Marketing Specialist and Meta Ads Intelligence Director.
+    
+    PRODUCT TO OUTPERFORM:
+    - Name: "${productName}"
+    - Core Offer/Value: "${productDescription}"
+    - Target Location: "${location}"
+    
+    META ADS LIBRARY SEARCH PARAMETERS:
+    - Specific Keywords: "${keywords || productName}"
+    - Target Competitors: ${competitors.length ? competitors.join(", ") : "Main direct competitors in " + location}
+    
+    TASK:
+    Conduct a comprehensive Meta Ads Library benchmark & competitor ads teardown for this niche in ${location}.
+    
+    1. Overall Landscape Summary: Concise analysis of active advertising activity on Meta (Facebook/Instagram/Audience Network).
+    2. Dominant Formats: Percentage breakdown (e.g., Video/Reels, Carousel, Static Image, UGC/Story) with rationale on why these formats dominate in this niche.
+    3. Top Analyzed Ads (3-5 ad teardowns): For each competitor/ad pattern found in Meta Ads Library:
+       - Give realistic ad headline, format, hook type, visual hook description, copy angle, CTA text.
+       - Provide detailed Scoring out of 100 for: Hook Score, Copy Persuasion Score, Visual Impact Score, Offer Clarity Score, and Overall Score.
+       - Highlight key Strengths, Weaknesses, and Why It Works.
+    4. "O que Funciona" (Winning Patterns):
+       - Best Visual Hooks: 3-4 specific visual opening ideas that capture attention.
+       - Winning Copy Angles: 3-4 persuasive copy formulas working right now.
+       - Top Call To Actions: 3 CTAs that drive conversion.
+       - Common Offers & Pricing tactics seen in active Meta Ads.
+    5. Strategic Recommendations: 3 actionable recommendations with high impact for "${productName}", including an "actionableHookToTry" that can be turned directly into a Meta Ad Creative.
+    
+    Answer strictly in ${getLangName(lang)}.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema,
+                tools: [{ googleSearch: {} }]
+            }
+        });
+        const parsed = extractJSON(response.text);
+        if (parsed) return parsed;
+    } catch (e) {
+        console.warn("generateMetaAdsLibraryAnalysis with search tool failed, retrying without search tool:", e);
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: getModel(mode),
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: schema
+            }
+        });
+        return extractJSON(response.text);
+    } catch (e) {
+        console.error("generateMetaAdsLibraryAnalysis failed:", e);
+        return null;
+    }
+};

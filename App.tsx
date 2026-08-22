@@ -757,7 +757,9 @@ function App() {
                 
                 const newCreative: Creative = { id: newId, style, ...result, selectedBaseImages: defaultBase, shotType: shotType };
                 updateProduct(prev => ({ creatives: [newCreative, ...prev.creatives] }), productId);
-                const sanitizedPrompt = (result.visualPrompt || "Professional product shot").replace(/["']/g, "").substring(0, 450);
+                const strategicPrefix = customDirection?.trim() ? `IMPORTANTE: Direção Estratégica: ${customDirection.trim()}. ` : "";
+                const baseVisualPrompt = (result.visualPrompt || "Professional product visualization").replace(/["']/g, "");
+                const sanitizedPrompt = (strategicPrefix + baseVisualPrompt).substring(0, 1200);
                 
                 // Pass brandKit to ensure visual DNA is used if base image is missing
                 handleGenerateCreativeImageTask(productId, newId, sanitizedPrompt, defaultBase, shotType, style);
@@ -895,7 +897,7 @@ function App() {
     const p = productsRef.current.find(prod => prod.id === productId);
     
     try {
-        const sanitizedPrompt = (prompt || "Professional product visualization").replace(/["']/g, "").substring(0, 450);
+        const sanitizedPrompt = (prompt || "Professional product visualization").replace(/["']/g, "").substring(0, 1500);
         
         // Read requested image count (1, 2, or 3)
         const imagesCount = Math.max(1, Math.min(3, p?.creativeSettings?.metaImagesCount || 1));

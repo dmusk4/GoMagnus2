@@ -103,6 +103,52 @@ export interface CreativeSettings {
   storyboardActiveStyle?: string;
   storyboardIgnoreContext?: boolean;
   softwareDirection?: string;
+  metaLibraryKeywords?: string;
+  metaLibraryLocation?: string;
+  metaLibraryCompetitors?: string[];
+}
+
+export interface MetaAdTeardown {
+  id: string;
+  competitorName: string;
+  adHeadline: string;
+  format: 'Video/Reels' | 'Carousel' | 'Static Image' | 'UGC/Story' | 'Offer Card';
+  hookType: string;
+  visualHookDescription: string;
+  copyAngle: string;
+  ctaText: string;
+  scores: {
+    hookScore: number;
+    copyPersuasionScore: number;
+    visualImpactScore: number;
+    offerClarityScore: number;
+    overallScore: number;
+  };
+  strengths: string[];
+  weaknesses: string[];
+  whyItWorks: string;
+}
+
+export interface MetaAdsLibraryAnalysis {
+  analyzedAt: number;
+  keywordsUsed: string;
+  locationAnalyzed: string;
+  competitorsAnalyzed: string[];
+  overallLandscapeSummary: string;
+  dominantFormats: Array<{ format: string; percentage: number; rationale: string }>;
+  topAnalyzedAds: MetaAdTeardown[];
+  winningPatterns: {
+    bestVisualHooks: string[];
+    winningCopyAngles: string[];
+    topCallToActions: string[];
+    commonOffersAndPricing: string[];
+  };
+  strategicRecommendations: Array<{
+    title: string;
+    description: string;
+    impact: 'High' | 'Medium' | 'Essential';
+    actionableHookToTry: string;
+  }>;
 }
 
 export interface PLGActionBlock {
@@ -141,6 +187,7 @@ export interface Product {
   industryNews?: IndustryNews[];
   linkedinPosts?: LinkedInPost[];
   softwareRecommendations?: SoftwareRecommendation[];
+  metaAdsAnalysis?: MetaAdsLibraryAnalysis;
   lastUpdated: number;
   lpBuilderData?: LandingPageBuilderData;
   designDirectorData?: DesignDirectorData;

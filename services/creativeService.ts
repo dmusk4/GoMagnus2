@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { Language, GenerationMode, EmailStyle, IndustryNews, SoftwareRecommendation } from "../types";
-import { getAI, getModel, extractJSON, extractJsonArrayObjects } from "./aiCore";
+import { getAI, getModel, extractJSON, extractJsonArrayObjects, imageUrlToBase64 } from "./aiCore";
 import { 
   buildMetaAdPrompt, 
   getMetaAdSystemInstruction, 
@@ -94,16 +94,29 @@ export const generateCreativeImage = async (
     const ai = getAI();
     try {
         // Handle single string or array of strings
-        const imagesToProcess = Array.isArray(baseImages) 
+        const rawImages = Array.isArray(baseImages) 
             ? baseImages 
             : (baseImages ? [baseImages] : []);
 
-        const finalPrompt = buildCreativeImagePrompt(prompt, style, composition, brandKit, lang, imagesToProcess.length > 0);
+        const validBase64Images: string[] = [];
+        for (const img of rawImages) {
+            if (!img) continue;
+            if (img.startsWith('data:')) {
+                validBase64Images.push(img);
+            } else if (img.startsWith('http://') || img.startsWith('https://')) {
+                const converted = await imageUrlToBase64(img);
+                if (converted) validBase64Images.push(converted);
+            } else {
+                validBase64Images.push(img);
+            }
+        }
+
+        const finalPrompt = buildCreativeImagePrompt(prompt, style, composition, brandKit, lang, validBase64Images.length > 0);
 
         const parts: any[] = [{ text: finalPrompt }];
         
-        if (imagesToProcess.length > 0) {
-            imagesToProcess.forEach(img => {
+        if (validBase64Images.length > 0) {
+            validBase64Images.forEach(img => {
                 // strip prefix if present
                 const b64 = img.split(',')[1] || img;
                 parts.push({
@@ -113,7 +126,7 @@ export const generateCreativeImage = async (
                     }
                 });
             });
-            parts.push({ text: `Use the above ${imagesToProcess.length} image(s) as the main reference/foundation for the product/subject.` });
+            parts.push({ text: `Use the above ${validBase64Images.length} image(s) as the primary base/reference to modify and transform according to the exact instructions and visual alterations.` });
         }
         
         const imageModels = ['gemini-3.1-flash-image', 'gemini-2.5-flash-image'];

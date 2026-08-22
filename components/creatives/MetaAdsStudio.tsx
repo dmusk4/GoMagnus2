@@ -49,6 +49,34 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
   const t = getTranslation(language);
   const creatives = Array.isArray(product.creatives) ? product.creatives : [];
   const [editingCreative, setEditingCreative] = React.useState<Creative | null>(null);
+  const [visualAdjustments, setVisualAdjustments] = React.useState<Record<string, string>>({});
+
+  const handleTriggerImageGen = (creative: Creative, baseImg: any, shot: string, style?: string) => {
+    const adjustment = (visualAdjustments[creative.id] || '').trim();
+    const strategicDir = (customMetaDirection || '').trim();
+    
+    // Determine reference images: if modifying an existing image, pass the active image as direct baseline
+    const activeIndex = creative.activeImageIndex || 0;
+    const urlsList = creative.imageUrls && creative.imageUrls.length > 0 ? creative.imageUrls : (creative.imageUrl ? [creative.imageUrl] : []);
+    const currentActiveUrl = urlsList[activeIndex] || creative.imageUrl;
+
+    let baseImagesToUse = baseImg;
+    if (adjustment && currentActiveUrl) {
+      const existingBases = Array.isArray(baseImg) ? baseImg : (baseImg ? [baseImg] : []);
+      const combined = [currentActiveUrl, ...existingBases.filter((b: string) => b !== currentActiveUrl)].slice(0, 3);
+      baseImagesToUse = combined;
+    }
+
+    let promptToUse = creative.visualPrompt || "Professional product visualization";
+
+    if (adjustment) {
+      promptToUse = `IMPORTANTE: ${adjustment}.${strategicDir ? ` Direção Estratégica: ${strategicDir}.` : ''} Modifica e transforma a imagem diretamente a partir da imagem base/referência fornecida aplicando com máxima fidelidade esta alteração visual. Descrição base da cena: ${creative.visualPrompt}`;
+    } else if (strategicDir) {
+      promptToUse = `IMPORTANTE: Direção Estratégica: ${strategicDir}. ${creative.visualPrompt}`;
+    }
+
+    onGenerateImage(creative.id, promptToUse, baseImagesToUse, shot, style);
+  };
 
   const handleSaveToCreative = (creativeId: string, newImageUrl: string, targetIndex?: number) => {
     const updated = creatives.map(c => {
@@ -402,11 +430,20 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                     );
                   })()
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-end p-8 bg-indigo-50/20"><button onClick={() => onGenerateImage(creative.id, creative.visualPrompt, creativeBase, globalShotType, creative.style)} disabled={isImgLoading} className="bg-indigo-600 text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-gray-900 transition-all flex items-center disabled:opacity-50"><Palette className="mr-2" size={14} />{isImgLoading ? t.common.building : t.creativesStep.craftVisual}</button></div>
+                  <div className="absolute inset-0 flex flex-col items-center justify-end p-8 bg-indigo-50/20">
+                    <button 
+                      onClick={() => handleTriggerImageGen(creative, creativeBase, globalShotType, creative.style)} 
+                      disabled={isImgLoading} 
+                      className="bg-indigo-600 text-white px-8 py-3 rounded-xl text-xs font-bold shadow-lg hover:bg-gray-900 transition-all flex items-center disabled:opacity-50"
+                    >
+                      <Palette className="mr-2" size={14} />
+                      {isImgLoading ? t.common.building : t.creativesStep.craftVisual}
+                    </button>
+                  </div>
                 )}
                 {isImgLoading && (<div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-[30] animate-fade-in"><Loader2 size={32} className="text-white animate-spin mb-4" /><p className="text-[10px] font-bold text-white uppercase tracking-widest">{t.creativesStep.renderingVisual}</p></div>)}
               </div>
-              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between gap-1 flex-wrap">
+              <div className="p-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
                 {creative.imageUrl ? (
                   (() => {
                     const activeIndex = creative.activeImageIndex || 0;
@@ -414,31 +451,52 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                     const activeUrl = urlsList[activeIndex] || creative.imageUrl;
 
                     return (
-                      <div className="flex items-center gap-1.5">
-                        <button 
-                          onClick={() => handleDownloadImage(activeUrl, `Ad-${creative.id}-${activeIndex + 1}.png`)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0"
-                          title={t.common.download}
-                        >
-                          <Download size={12} />
-                          <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.download}</span>
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => handleDownloadImage(activeUrl, `Ad-${creative.id}-${activeIndex + 1}.png`)}
+                        className="flex items-center justify-center p-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-2xs shrink-0"
+                        title={t.common.download}
+                      >
+                        <Download size={13} />
+                      </button>
                     );
                   })()
                 ) : (
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <Video size={12} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{globalShotType}</span>
+                    <div className="flex items-center gap-1 text-gray-400 shrink-0 px-1" title={globalShotType}>
+                        <Video size={13} />
                     </div>
                 )}
+
+                {/* Input text for suggesting alterations, added to visual prompt */}
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={visualAdjustments[creative.id] || ''}
+                    onChange={(e) => setVisualAdjustments(prev => ({ ...prev, [creative.id]: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isImgLoading) {
+                        e.preventDefault();
+                        handleTriggerImageGen(creative, creativeBase, globalShotType, creative.style);
+                      }
+                    }}
+                    placeholder={
+                      language === 'pt' 
+                        ? 'Sugerir alterações...' 
+                        : language === 'es' 
+                        ? 'Sugerir cambios...' 
+                        : 'Suggest visual adjustments...'
+                    }
+                    className="w-full bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-[11px] font-medium text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
+                  />
+                </div>
+
                 <button
-                  onClick={() => onGenerateImage(creative.id, creative.visualPrompt, creativeBase, globalShotType, creative.style)}
+                  onClick={() => handleTriggerImageGen(creative, creativeBase, globalShotType, creative.style)}
                   disabled={isImgLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-sm shrink-0 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all shadow-2xs shrink-0 disabled:opacity-50 font-bold"
+                  title="Atualizar Visual com alterações"
                 >
                   <RefreshCw size={12} className={isImgLoading ? 'animate-spin' : ''} />
-                  <span className="text-[10px] font-bold uppercase tracking-tight">{t.common.refresh} Visual</span>
+                  <span className="text-[10px] uppercase tracking-tight whitespace-nowrap">{t.common.refresh} Visual</span>
                 </button>
               </div>
               <div className={`bg-white p-4 flex items-center justify-between h-[90px] gap-3 transition-opacity ${isTextLoading ? 'opacity-30' : 'opacity-100'}`}><div className="flex-1 min-w-0 flex flex-col justify-center"><p className="text-[8px] text-gray-400 uppercase tracking-widest mb-1 truncate">{product.websiteUrl?.replace(/https?:\/\//, '') || 'MARKETHERO.APP'}</p><h4 className="text-[13px] font-bold text-gray-900 leading-tight truncate mb-0.5">{creative.headline}</h4><p className="text-[10px] text-gray-500 leading-tight truncate">{creative.subheadline}</p></div><button className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-[11px] font-bold shrink-0">{t.creativesStep.learnMore}</button></div>
