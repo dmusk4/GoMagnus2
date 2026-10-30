@@ -85,7 +85,7 @@ export interface DesignDirectorData {
 export interface CreativeSettings {
   metaDirection?: string;
   metaTextLength?: 'tweet' | 'short' | 'medium' | 'long';
-  metaShotType?: string;
+  metaShotType?: string | string[];
   metaBaseImage?: string;
   metaBaseImages?: string[];
   metaActiveStyle?: string;
@@ -103,6 +103,7 @@ export interface CreativeSettings {
   storyboardActiveStyle?: string;
   storyboardIgnoreContext?: boolean;
   softwareDirection?: string;
+  activeCreativeTab?: 'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone' | 'software';
   metaLibraryKeywords?: string;
   metaLibraryLocation?: string;
   metaLibraryCompetitors?: string[];
@@ -556,7 +557,7 @@ export interface LandingPageCopy {
 
 export interface Creative {
   id: string;
-  style: 'Direct-Response' | 'YouTube-Thumbnail' | 'Breaking News' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle' | 'Product-First' | 'SMS-Mockup' | 'Native-Social';
+  style: 'Direct-Response' | 'YouTube-Thumbnail' | 'Breaking News' | 'Highlight Method' | 'Secret Info' | 'Social Gossip' | 'Short-Human' | 'Pop-Culture-Twist' | 'Storytelling' | 'UGC/Raw' | 'Humor' | 'Minimalist' | 'Versus' | 'Unique-Mechanism' | 'Emotional-Driver' | 'Viral-Angle' | 'Product-First' | 'SMS-Mockup' | 'Native-Social' | 'Sign Meme' | 'Dude With Sign' | 'Handwritten Note' | 'Journal Note' | 'Journal Inspiration' | 'Redacted Truth' | 'Censored Truth' | 'Positive Vibe';
   hook: string;
   headline: string;
   subheadline: string;
@@ -566,7 +567,7 @@ export interface Creative {
   imageUrl?: string;
   imageUrls?: string[];
   activeImageIndex?: number;
-  shotType?: string;
+  shotType?: string | string[];
   selectedBaseImage?: string; // Legacy
   selectedBaseImages?: string[];
 }

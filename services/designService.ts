@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { LandingPageBuilderData, Language } from "../types";
-import { getLangName } from "./aiCore";
+import { getLangName, generateWithFallback } from "./aiCore";
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -213,7 +213,7 @@ export const analyzeDesignReferences = async (imageB64s: string[]): Promise<Bran
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.8-flash',
             contents: {
                 parts: [
                     ...validParts,
@@ -299,6 +299,12 @@ export const generateVibecodingPrompt = async (
     You are a top-tier digital designer creating one-billion-dollar landing pages featured on Awwwards, Behance and Dribbble.
     Design a bespoke, premium landing page with premium quality like Apple, Linear, Attio, Tesla — never templated, never generic.
 
+    BEFORE GENERATING:
+    1. Take a deep breath and plan the aesthetic architecture.
+    2. List the harmonious font combination and color palette (specifying primary, secondary, background, and text colors).
+    3. Describe layout strategy in one sentence.
+    4. For tally form style: list hex colors of text color, background color, cta background, and cta background hover.
+
     CORE PRINCIPLES
     Design with taste, restraint and intention
     Typography drives hierarchy
@@ -317,11 +323,6 @@ export const generateVibecodingPrompt = async (
     5. Rigid fixed heights (such as h-64 or h-[400px]) on text containers—always use auto-height, min-h-* or container vertical padding to safeguard against text growth.
     6. Broken column spans or visual misalignment caused by wrapping text. Ensure text wraps beautifully.
     7. Visual design system indicators in the user-facing interface. You are STRICTLY FORBIDDEN from generating visible elements on the actual landing page like color circles/swatches, hex code labels, visual design systems, font listings, or layout metrics. All typography and style decisions are solely configuration for styling and must not be rendered as HTML copy or content.
-
-    BEFORE GENERATING
-    2.list the harmonious font combination and color palette
-    3.describe layout strategy in one sentence
-    4.for tally form style: list hex colors of text color, background color, cta background, cta background hover
   
     CONTENT INJECTION RULE:
     You must populate the website using the EXACT text provided in the JSON data block at the end of this prompt. 
@@ -407,8 +408,8 @@ export const generateVibecodingPrompt = async (
     `;
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-3.7-flash',
+        const response = await generateWithFallback(ai, {
+            model: 'gemini-3.8-flash',
             contents: `Generate the Ultimate Vibecoding Prompt for this project.\n\nCONTEXT:\n${context}`,
             config: {
                 systemInstruction: systemInstruction,
@@ -602,7 +603,7 @@ export const generateElementorSiteSettings = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.8-flash',
             contents: `Generate Elementor Site Settings JSON.\n\nCONTEXT:\n${context}`,
             config: {
                 responseMimeType: "application/json",

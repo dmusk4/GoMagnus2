@@ -1,5 +1,5 @@
-import React from 'react';
-import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX, ChevronLeft, ChevronRight, Type, Pencil } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Palette, Loader2, Sparkles, RefreshCw, Trash2, Video, Download, Copy, Layout, Star, Zap, Heart, Share2, Compass, Image as ImageIcon, ToggleLeft, ToggleRight, UserX, ChevronLeft, ChevronRight, Type, Pencil, Check, ChevronDown, X, Info } from 'lucide-react';
 import { Product, Creative, Language } from '../../types';
 import { getTranslation } from '../../translations';
 import { CanvaImageEditorModal } from './CanvaImageEditorModal';
@@ -16,7 +16,7 @@ interface MetaAdsStudioProps {
   setCustomMetaDirection: (val: string) => void;
   onGenerateCreative: (style: Creative['style'], dir?: string) => void;
   onRefreshText: (id: string, style: Creative['style']) => void;
-  onGenerateImage: (id: string, prompt: string, base: string | string[] | undefined, comp: string, style?: string) => void;
+  onGenerateImage: (id: string, prompt: string, base: string | string[] | undefined, comp: string | string[], style?: string) => void;
   onUpdate: (creatives: Creative[]) => void;
   handleCopyText: (c: Creative) => void;
   handleDownloadImage: (url: string, name: string) => void;
@@ -25,8 +25,8 @@ interface MetaAdsStudioProps {
   COMPOSITIONS: any[];
   globalBaseImages: string[];
   setGlobalBaseImages: (val: string[]) => void;
-  globalShotType: string;
-  setGlobalShotType: (val: string) => void;
+  globalShotType: string | string[];
+  setGlobalShotType: (val: string | string[]) => void;
   excludeBuyerContext?: boolean;
   setExcludeBuyerContext?: (val: boolean) => void;
   setLightboxImage?: (url: string | null) => void;
@@ -50,8 +50,41 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
   const creatives = Array.isArray(product.creatives) ? product.creatives : [];
   const [editingCreative, setEditingCreative] = React.useState<Creative | null>(null);
   const [visualAdjustments, setVisualAdjustments] = React.useState<Record<string, string>>({});
+  const [isShotDropdownOpen, setIsShotDropdownOpen] = useState<boolean>(false);
+  const shotDropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleTriggerImageGen = (creative: Creative, baseImg: any, shot: string, style?: string) => {
+  // Close shot dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (shotDropdownRef.current && !shotDropdownRef.current.contains(event.target as Node)) {
+        setIsShotDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Normalize current framing selection to string[] (up to 2 selections)
+  const currentShots: string[] = Array.isArray(globalShotType)
+    ? globalShotType.filter(Boolean)
+    : (globalShotType ? [globalShotType] : ["Medium Shot"]);
+
+  const handleToggleShot = (val: string) => {
+    if (currentShots.includes(val)) {
+      // If clicking already selected, remove it (keep at least 1, or empty)
+      const next = currentShots.filter(s => s !== val);
+      setGlobalShotType(next.length > 0 ? next : ["Medium Shot"]);
+    } else {
+      // Add up to 2. If already 2 selected, replace the second one or shift
+      if (currentShots.length >= 2) {
+        setGlobalShotType([currentShots[0], val]);
+      } else {
+        setGlobalShotType([...currentShots, val]);
+      }
+    }
+  };
+
+  const handleTriggerImageGen = (creative: Creative, baseImg: any, shot: string | string[], style?: string) => {
     const adjustment = (visualAdjustments[creative.id] || '').trim();
     const strategicDir = (customMetaDirection || '').trim();
     
@@ -212,6 +245,17 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                   </button>
                 )}
               </div>
+              {activeStyle === 'Positive Vibe' && (
+                <p className="text-[11px] text-gray-500 mt-2.5 font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                  {language === 'pt' 
+                    ? 'As cores de fundo, o tipo de letra e as ilustrações (doodles) adaptam-se dinamicamente ao nicho do teu produto.' 
+                    : language === 'es'
+                    ? 'Los colores de fondo, la tipografía y las ilustraciones (doodles) se adaptan dinámicamente al nicho de tu producto.'
+                    : 'Background colors, typography font, and doodle illustrations adapt dynamically to your specific product niche.'}
+                </p>
+              )}
+
             </div>
         </div>
 
@@ -283,19 +327,89 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
              </div>
           </div>
 
-          <div className="flex flex-col gap-2 min-w-[160px]">
-             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <div className="flex flex-col gap-2 min-w-[200px] relative" ref={shotDropdownRef}>
+             <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                 <Video size={12} className="text-indigo-500"/> {t.creativesStep.cameraShot}
              </label>
+
              <div className="relative">
-                <select
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-xs font-bold text-gray-700 outline-none cursor-pointer hover:border-indigo-300 transition-all appearance-none h-[46px]"
-                  value={globalShotType}
-                  onChange={(e) => setGlobalShotType(e.target.value)}
-                >
-                  {COMPOSITIONS.map(comp => (<option key={comp.value} value={comp.value}>{comp.label}</option>))}
-                </select>
-                <Video size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+               <button
+                 type="button"
+                 onClick={() => setIsShotDropdownOpen(!isShotDropdownOpen)}
+                 className={`w-full bg-gray-50 border rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 outline-none cursor-pointer transition-all flex items-center justify-between h-[46px] hover:bg-white hover:border-indigo-300 shadow-2xs ${
+                   isShotDropdownOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-white' : 'border-gray-200'
+                 }`}
+                 title={currentShots.join(', ')}
+               >
+                 <div className="flex items-center gap-1.5 overflow-hidden pr-1">
+                   {currentShots.length === 0 ? (
+                     <span className="text-gray-400 text-xs truncate">Selecionar até 2...</span>
+                   ) : (
+                     <div className="flex items-center gap-1 flex-nowrap overflow-hidden">
+                       {currentShots.map((shot) => (
+                         <span
+                           key={shot}
+                           className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2 py-0.5 rounded-lg border border-indigo-100 whitespace-nowrap shrink-0"
+                         >
+                           {shot}
+                           {currentShots.length > 1 && (
+                             <span
+                               role="button"
+                               tabIndex={0}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleToggleShot(shot);
+                               }}
+                               className="hover:text-indigo-900 rounded p-0.5"
+                             >
+                               <X size={10} />
+                             </span>
+                           )}
+                         </span>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+                 <ChevronDown 
+                   size={14} 
+                   className={`text-gray-400 shrink-0 transition-transform duration-200 ${isShotDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} 
+                 />
+               </button>
+
+               {isShotDropdownOpen && (
+                 <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 p-2 min-w-[220px] animate-in fade-in zoom-in-95 duration-150">
+                   <div className="max-h-[260px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                     {COMPOSITIONS.map((comp) => {
+                       const isSelected = currentShots.includes(comp.value);
+                       const canSelect = isSelected || currentShots.length < 2;
+
+                       return (
+                         <button
+                           key={comp.value}
+                           type="button"
+                           onClick={() => handleToggleShot(comp.value)}
+                           className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                             isSelected
+                               ? 'bg-indigo-50/80 text-indigo-900 font-bold border border-indigo-200/80 shadow-2xs'
+                               : 'text-gray-700 hover:bg-gray-50 border border-transparent'
+                           }`}
+                         >
+                           <span className="truncate pr-2">{comp.label}</span>
+                           <div className="flex items-center gap-1 shrink-0">
+                             {isSelected ? (
+                               <div className="w-4 h-4 rounded-md bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
+                                 <Check size={11} strokeWidth={3} />
+                               </div>
+                             ) : (
+                               <div className={`w-4 h-4 rounded-md border ${canSelect ? 'border-gray-300' : 'border-gray-200 bg-gray-50 opacity-50'}`} />
+                             )}
+                           </div>
+                         </button>
+                       );
+                     })}
+                   </div>
+                 </div>
+               )}
              </div>
           </div>
 
@@ -461,7 +575,7 @@ export const MetaAdsStudio: React.FC<MetaAdsStudioProps> = ({
                     );
                   })()
                 ) : (
-                    <div className="flex items-center gap-1 text-gray-400 shrink-0 px-1" title={globalShotType}>
+                    <div className="flex items-center gap-1 text-gray-400 shrink-0 px-1" title={currentShots.join(', ')}>
                         <Video size={13} />
                     </div>
                 )}

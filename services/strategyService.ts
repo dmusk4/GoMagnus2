@@ -64,14 +64,14 @@ export const generateUniqueOffer = async (productContext: string, buyerContext: 
             moat: {
                 type: Type.OBJECT,
                 properties: {
-                    coreAdvantage: { type: Type.STRING, description: "Your core defensive advantage (MOAT) - the compounding, sustainable structural barrier that protects market share, pricing power, and profits long-term (e.g., network effects, high switching costs, or massive scale advantage)." },
-                    whyDefensible: { type: Type.STRING, description: "Defensibility of the Moat: The deep, structural reasons why competitors cannot replicate or copy this defensive barrier in under 6 months." },
-                    whereUnbeatable: { type: Type.STRING, description: "Unbeatable Domain: The precise targeted customer segment or hyper-niche market position where this strategic advantage is absolutely undefeated." },
-                    gapExploited: { type: Type.STRING, description: "The Gap Exploited: The exact operational, pricing, or product gap left by standard competitors that we uniquely conquer." },
-                    rightToWin: { type: Type.STRING, description: "Right to Win (Offense): The offensive strategy explaining the distinct reason why a customer chooses us over alternatives right now. Focuses on market penetration, execution speed, unique UI, proprietary algorithm, or niche support, and shows how we reinvest this traction to build the Moat over time." }
+                    coreAdvantage: { type: Type.STRING, description: "Your core defensive advantage (MOAT) - single concise, impactful sentence (max 15-20 words) defining the sustainable barrier protecting profits long-term." },
+                    whyDefensible: { type: Type.STRING, description: "Defensibility of the Moat: Exactly 2 sharp, concise bullet points (format: '• Point 1\\n• Point 2') explaining why competitors cannot replicate this barrier in under 6 months." },
+                    whereUnbeatable: { type: Type.STRING, description: "Unbeatable Domain: 1 concise bullet point or short sentence specifying the exact targeted customer segment or hyper-niche where this advantage is undefeated." },
+                    gapExploited: { type: Type.STRING, description: "The Gap Exploited: 1 concise bullet point defining the exact competitor blindspot or operational gap uniquely captured." },
+                    rightToWin: { type: Type.STRING, description: "Right to Win (Offense): Exactly 2 to 3 concise, high-impact bullet points (format: '• Point 1\\n• Point 2\\n• Point 3') explaining the immediate offensive advantage winning customers today and how this foothold is reinvested to build the Moat over time." }
                 },
                 required: ["coreAdvantage", "whyDefensible", "whereUnbeatable", "gapExploited", "rightToWin"],
-                description: "Estratégia MOAT e Right to Win - Strategic competitive analysis of offensive (Right to Win) and defensive (Moat) forces."
+                description: "Estratégia MOAT e Right to Win - Strategic competitive analysis formatted as concise, easy-to-read bullet points."
             }
         },
         required: ["paretoFocus", "headline", "corePromise", "timeframe", "bonuses", "riskReversal", "scarcity", "priceAnchor", "moat"]
@@ -85,29 +85,32 @@ STRICT REQUIREMENTS:
 1. Use official currency of ${location}.
 2. Answer strictly in ${getLangName(lang)}.
 3. PARETO 80/20 RULE: At the very beginning of the offer generation, analyze the product context and apply the Pareto Principle (80/20 rule). Identify the 20% of focus/effort/features that will generate 80% of the maximum possible outcome. Tell the marketer exactly where to focus and innovate for maximum leverage. Focus is key.
-4. ESTRUTURA DE MOAT E RIGHT TO WIN (OFFENSE vs. DEFENSE): Act as an elite competitive business strategist. Analyze the business context deeply to formulate a highly defensible, realistic defensive Moat and a concrete offensive Right to Win, based strictly on these frameworks:
-   - RIGHT TO WIN (Offense): This is our offensive strategy—the specific, unreplicable advantage that allows us to acquire customers and beat competitors today.
-     * What it is: The distinct reason why a customer chooses us over the alternative right now.
-     * Core Focus: Market penetration, execution speed, and unique go-to-market strategies.
-     * Examples to adapt: A radically better user interface, an exclusive sales partnership, a proprietary algorithm, or superior customer support for a specific niche.
-     * When it matters: Essential for early-stage startups and new product launches to establish a foothold and break into a crowded market.
-   - MOAT (Defense): This is our defensive strategy—the compounding, sustainable structural barrier that protects our market share, pricing power, and profits from being competed away over the long term.
-     * What it is: The compounding, sustainable advantage that makes it nearly impossible for competitors to replicate our success or steal our customers later on.
-     * Core Focus: Long-term profitability, structural defense, and compounding value.
-     * Examples to adapt: Network effects, high switching costs (deep workflow integration), or a massive scale advantage.
-     * When it matters: Essential for scaling into a mature, highly profitable business protected from commoditization.
-   - HOW THEY WORK TOGETHER: Detail how the business uses its Right to Win to gain traction and generate revenue today, and how it reinvests that capital and market presence to build a Moat, shifting from a fast-growing startup to a protected, durable market leader.
+4. ESTRUTURA DE MOAT E RIGHT TO WIN (OFFENSE vs. DEFENSE) - SUCINTO E POR PONTOS (MANDATÓRIO):
+   Atue como um estrategista de negócios de topo. Formule uma análise competitiva de Ataque (Right to Win) e Defesa (Moat) que seja EXTREMAMENTE SUCINTA, DIRETA E DE FÁCIL LEITURA VISUAL (ESTRUTURADA EM TÓPICOS/BULLETS '• ').
+   PROIBIDO parágrafos longos ou texto denso. Cada tópico deve ter no máximo 1 a 2 linhas com impacto imediato.
+
+   - RIGHT TO WIN (Ataque - Por que vencemos e somos escolhidos hoje):
+     Forneça 2 a 3 pontos/bullets concisos e objetivos (usando '• '):
+     • Trunfo de Ataque: O diferencial concreto pelo qual o cliente nos escolhe hoje em vez das alternativas existentes.
+     • Agilidade & Execução: A vantagem de produto/GTM/suporte que nos permite penetrar o mercado rapidamente.
+     • Reinvestimento no Moat: Como convertemos essa tração inicial para erguer as defesas do negócio.
+
+   - MOAT (Defesa - A barreira estrutural sustentável de longo prazo):
+     * coreAdvantage: 1 frase cirúrgica e direta (máx 15-20 palavras) definindo a barreira defensiva principal (ex: network effects, switching costs elevados, escala ou dados exclusivos).
+     * whyDefensible: Exatamente 2 pontos/bullets concisos ('• ') com os motivos estruturais pelos quais concorrentes não conseguem copiar em menos de 6 meses.
+     * whereUnbeatable: Ponto direto com o nicho ou segmento específico onde a oferta é absolutamente imbatível.
+     * gapExploited: Ponto direto com a lacuna ou falha crítica deixada pelos concorrentes tradicionais.
 
 Please populate these fields:
-   - coreAdvantage: One sentence defining our solid, highly realistic defensive advantage (Moat) protecting the business from being copied.
-   - whyDefensible: Two specific, realistic, and structural reasons why competitors cannot copy this Moat in under 6 months.
-   - whereUnbeatable: The specific, targeted customer segment or hyper-niche market position where our advantage is absolutely strongest and undefeated.
-   - gapExploited: The exact operational or marketing gap in what standard competitors are doing that we uniquely capture.
-   - rightToWin: A profound, highly strategic, capability-driven 'Right to Win' offensive analysis (minimum 2-3 sentences). Detail the exact offensive tactics (such as superior UI, execution speed, exclusive GTM strategies, or niche support) that win customer choice today, and outline how this offensive foothold is strategically reinvested to build the defensive Moat over time.`,
+   - coreAdvantage: Uma frase cirúrgica e concisa (máx 15-20 palavras) definindo a barreira estrutural defensiva.
+   - whyDefensible: Exatamente 2 pontos/bullets concisos ('• ') explicando por que os concorrentes não conseguem copiar em 6 meses.
+   - whereUnbeatable: Ponto direto e sucinto identificando o nicho ou perfil exato onde a vantagem é imbatível.
+   - gapExploited: Ponto direto e sucinto sobre a falha crítica de mercado explorada.
+   - rightToWin: 2 a 3 pontos/bullets concisos ('• ') destacando a vantagem ofensiva imediata e como a tração inicial é reinvestida no Moat.`,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: schema,
-                systemInstruction: `You are an elite business strategist, direct-response copywriter, and competitive strategy advisor. Your goal is to engineer offers that are impossible to refuse, apply the 80/20 Pareto rule, and build a defensible competitive Moat (Defense) paired with a deep, offensive 'Right to Win' (Offense) analysis. Make sure all insights are highly specific, structural, and unique to the business context rather than vague marketing fluff. Adapt values and currencies. Respond only in ${getLangName(lang)}.`
+                systemInstruction: `You are an elite business strategist, direct-response copywriter, and competitive strategy advisor. Your goal is to engineer offers that are impossible to refuse, apply the 80/20 Pareto rule, and build a defensible competitive Moat (Defense) paired with a deep, offensive 'Right to Win' (Offense) analysis. All insights must be punchy, highly specific, succinct, and formatted in clear bullet points ('• ') for effortless readability. Adapt values and currencies. Respond only in ${getLangName(lang)}.`
             }
         });
         return extractJSON(response.text);

@@ -7,7 +7,8 @@ import {
   ChevronLeft,
   ShieldAlert,
   ExternalLink,
-  Key
+  Key,
+  Download
 } from 'lucide-react';
 import { Product, StrategyStep, UniqueOffer, BigIdea, ProductType, Creative, MarketIntel, SalesPageAesthetic, SearchAdGroup, Storyboard, Scene, Language, GenerationMode, CampaignPlan, EmailCampaign, EmailStyle, LaunchBlueprint, IndustryNews, LandingPageBuilderData, BuilderSectionId, PhoneCampaign } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -23,6 +24,8 @@ import { LaunchBlueprintStep } from './components/LaunchBlueprintStep';
 import { ExpertChat } from './components/ExpertChat';
 import { COUNTRIES } from './components/Common';
 import { getTranslation } from './translations';
+import { sanitizeContext } from './services/aiCore';
+import { downloadImageFile } from './services/downloadHelper';
 
 import { 
   generateDreamBuyerStream, 
@@ -47,7 +50,8 @@ import {
   generateLaunchBlueprint,
   fetchIndustryNewsStream,
   generateLinkedInPost,
-  refreshStoryboardScene
+  refreshStoryboardScene,
+  generateSoftwareRecommendations
 } from './services/geminiService';
 import { generateCompetitorAnalysis, generatePricingSuggestions } from './services/competitorService';
 import { generateLandingPageCopy } from './services/salesPageCopyService';
@@ -204,12 +208,23 @@ function App() {
     }));
   };
 
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+
   const addTask = (key: string) => setTaskQueue(prev => new Set(prev).add(key));
   const removeTask = (key: string) => setTaskQueue(prev => {
     const next = new Set(prev);
     next.delete(key);
     return next;
   });
+
+  const handleCancelTask = (key: string) => {
+    const controller = abortControllersRef.current.get(key);
+    if (controller) {
+      controller.abort();
+      abortControllersRef.current.delete(key);
+    }
+    removeTask(key);
+  };
 
   const handleAddProduct = () => {
     const newProduct: Product = {
@@ -706,6 +721,8 @@ function App() {
     
     const taskKey = existingId ? `creative-refresh-text-${existingId}` : `creative-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     
     let strategicPillar = "";
     if (style === 'Unique-Mechanism') strategicPillar = p.bigIdea?.uniqueMechanismDescription || p.bigIdea?.uniqueMechanism || "";
@@ -725,12 +742,11 @@ function App() {
                 description: p.description,
                 type: p.type,
                 location: p.location,
-                website: p.websiteUrl,
-                images: p.images
+                website: p.websiteUrl
              };
-             contextPayload = JSON.stringify(rawProduct);
+             contextPayload = sanitizeContext(rawProduct);
         } else {
-             contextPayload = JSON.stringify(p);
+             contextPayload = sanitizeContext(p);
         }
         
         let lengthInstruction = "";
@@ -740,7 +756,7 @@ function App() {
 
         const context = userDirectionContext + (lengthInstruction ? `\n\n${lengthInstruction}\n\n` : "") + contextPayload;
         // Added: isRefresh flag (last argument)
-        const result = await generateCreativeText(context, style, p.location, language, generationMode, strategicPillar, !!existingId);
+        const result = await generateCreativeText(context, style, p.location, language, generationMode, strategicPillar, !!existingId, controller.signal);
         if (result) {
             if (existingId) {
                 updateProduct(prev => ({ creatives: prev.creatives.map(c => c.id === existingId ? { ...c, ...result } : c) }), productId);
@@ -768,7 +784,10 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
   const handleGenerateSearchAdsTask = async (productId: string, customDirection?: string) => {
@@ -776,13 +795,15 @@ function App() {
     if (!p) return;
     const taskKey = `search-ads-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
       // Clean context to ensure fresh generation based on direction
       const productContext = { ...p };
       delete (productContext as any).searchAds; // Remove existing ads so AI doesn't just copy them
       delete (productContext as any).creatives; // Remove social creatives to focus purely on search intent
 
-      const result = await generateSearchAds(JSON.stringify(productContext), p.location, language, generationMode, customDirection);
+      const result = await generateSearchAds(sanitizeContext(productContext), p.location, language, generationMode, customDirection, controller.signal);
       if (result && result.adGroups) {
           // Prepend new ad groups instead of replacing
           updateProduct(prev => ({ 
@@ -792,7 +813,10 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
   const handleGenerateEmailCampaignTask = async (productId: string, category: string, style: EmailStyle, customDirection?: string) => {
@@ -800,9 +824,11 @@ function App() {
     if (!p) return;
     const taskKey = `email-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
       const userDirectionContext = customDirection ? `\n\nUSER SPECIFIC DIRECTION: ${customDirection}\n\n` : "";
-      const result = await generateEmailCampaign(userDirectionContext + JSON.stringify(p), p.location, p.type || "Other", category, style, language, generationMode);
+      const result = await generateEmailCampaign(userDirectionContext + sanitizeContext(p), p.location, p.type || "Other", category, style, language, generationMode, controller.signal);
       if (result) {
         updateProduct(prev => {
           // Changed: We no longer append currentEmails to newEmails.
@@ -819,7 +845,10 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
   const handleGenerateStoryboardTask = async (productId: string, style: string, customDirection?: string) => {
@@ -827,6 +856,8 @@ function App() {
     if (!p) return;
     const taskKey = `storyboard-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
       const styleContext = `\n\nSTORYBOARD STYLE: ${style}\nCreate the script specifically using this angle/format.\n\n`;
       const userDirectionContext = customDirection ? `\n\nUSER SPECIFIC DIRECTION: ${customDirection}\n\n` : "";
@@ -841,15 +872,14 @@ function App() {
               description: p.description,
               type: p.type,
               location: p.location,
-              website: p.websiteUrl,
-              images: p.images
+              website: p.websiteUrl
            };
-           contextPayload = JSON.stringify(rawProduct);
+           contextPayload = sanitizeContext(rawProduct);
       } else {
-           contextPayload = JSON.stringify(p);
+           contextPayload = sanitizeContext(p);
       }
 
-      const result = await generateStoryboard(styleContext + userDirectionContext + contextPayload, p.location, language, generationMode);
+      const result = await generateStoryboard(styleContext + userDirectionContext + contextPayload, p.location, language, generationMode, controller.signal);
       if (result) {
         const defaultBase = p.images[0];
         const sb: Storyboard = { ...result, id: Date.now().toString(), scenes: result.scenes.map((s: any) => ({ ...s, selectedBaseImage: defaultBase })) };
@@ -862,15 +892,20 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
   const handleGenerateSceneImageTask = async (productId: string, storyboardId: string, sceneNumber: number, prompt: string, baseImage?: string) => {
     const taskKey = `scene-img-gen-${sceneNumber}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
       const sanitizedPrompt = (prompt || "Cinematic scene").replace(/["']/g, "").substring(0, 450);
-      const resultUrl = await generateCreativeImage(sanitizedPrompt, baseImage);
+      const resultUrl = await generateCreativeImage(sanitizedPrompt, baseImage, "16:9", undefined, undefined, undefined, undefined, controller.signal);
       if (resultUrl) {
         updateProduct(prev => ({
           storyboards: prev.storyboards?.map(sb => {
@@ -887,12 +922,17 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
-  const handleGenerateCreativeImageTask = async (productId: string, creativeId: string, prompt: string, baseImage?: string | string[], composition?: string, style?: string) => {
+  const handleGenerateCreativeImageTask = async (productId: string, creativeId: string, prompt: string, baseImage?: string | string[], composition?: string | string[], style?: string) => {
     const taskKey = `image-gen-${creativeId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     
     const p = productsRef.current.find(prod => prod.id === productId);
     
@@ -904,7 +944,7 @@ function App() {
         
         // Run generation in parallel so user gets different versions quickly
         const promises = Array.from({ length: imagesCount }).map(() =>
-            generateCreativeImage(sanitizedPrompt, baseImage, "4:5", composition, p?.brandKit, style, language)
+            generateCreativeImage(sanitizedPrompt, baseImage, "4:5", composition, p?.brandKit, style, language, controller.signal)
         );
         
         const results = await Promise.all(promises);
@@ -924,7 +964,52 @@ function App() {
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
       console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
+  };
+
+  const handleGenerateSoftwareTask = async (productId: string, customDirection?: string) => {
+    const p = productsRef.current.find(prod => prod.id === productId);
+    if (!p) return;
+    const taskKey = `software-gen-${productId}`;
+    addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
+    try {
+      const productContext = `Product: ${p.name}. Description: ${p.description}. ICP: ${p.decisionMaker || ''}`;
+      const campaignContext = p.campaignPlan
+         ? `Direction: ${p.campaignPlan.direction}. Core Message: ${p.campaignPlan.coreMessage}. Goal: ${p.campaignPlan.goal}`
+         : "";
+      const result = await generateSoftwareRecommendations(
+        productContext,
+        campaignContext,
+        p.location || "Global",
+        language,
+        generationMode,
+        customDirection,
+        controller.signal
+      );
+      if (result && result.tools) {
+        const newTools = result.tools.map((t, idx) => ({ 
+          ...t, 
+          id: `tool-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`
+        }));
+        updateProduct(prev => {
+          const existing = prev.softwareRecommendations || [];
+          return {
+            softwareRecommendations: [...newTools, ...existing]
+          };
+        }, productId);
+      }
+    } catch (err: any) {
+      if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
+      console.error("Error generating software recommendations:", err);
+    } finally {
+      abortControllersRef.current.delete(taskKey);
+      removeTask(taskKey);
+    }
   };
 
   const handleGenerateSalesPageTask = async (productId: string, preferredAesthetic?: SalesPageAesthetic) => {
@@ -933,7 +1018,7 @@ function App() {
     const taskKey = `sales-page-gen-${productId}`;
     addTask(taskKey);
     try {
-        const result = await generateSalesPage(JSON.stringify(p), language, generationMode, preferredAesthetic);
+        const result = await generateSalesPage(sanitizeContext(p), language, generationMode, preferredAesthetic);
         if (result) updateProduct({ salesPage: result }, productId);
     } catch (err: any) {
       if (err.message?.includes("Requested entity was not found")) setHasApiKey(false);
@@ -1125,6 +1210,8 @@ function App() {
     if (!p) return;
     const taskKey = `news-fetch-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     if (!isLoadMore) {
         updateProduct({ industryNews: [] }, productId);
     }
@@ -1148,11 +1235,15 @@ function App() {
                     return { industryNews: [...(prev.industryNews || []), ...newItems] };
                 }, productId);
             },
-            existingHeadlines
+            existingHeadlines,
+            controller.signal
         );
     } catch (err: any) {
         console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+        abortControllersRef.current.delete(taskKey);
+        removeTask(taskKey);
+    }
   };
 
   const handleGenerateLinkedInPost = async (productId: string, newsItem: IndustryNews | null, style: string, customDirection?: string) => {
@@ -1160,6 +1251,8 @@ function App() {
     if (!p) return;
     const taskKey = `linkedin-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
         const userDirectionContext = customDirection ? `\n\nUSER SPECIFIC DIRECTION: ${customDirection}\n\n` : "";
         
@@ -1186,14 +1279,17 @@ function App() {
              buyerContext = p.dreamBuyer ? JSON.stringify(p.dreamBuyer) : "Target Audience: B2B Decision Makers";
         }
 
-        const result = await generateLinkedInPost(productContext, buyerContext, newsItem, language, generationMode, style);
+        const result = await generateLinkedInPost(productContext, buyerContext, newsItem, language, generationMode, style, controller.signal);
         if (result) {
             const newPost = { ...result, id: Date.now().toString(), linkedNewsId: newsItem?.id };
             updateProduct(prev => ({ linkedinPosts: [newPost, ...(prev.linkedinPosts || [])] }), productId);
         }
     } catch (err: any) {
         console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+        abortControllersRef.current.delete(taskKey);
+        removeTask(taskKey);
+    }
   };
 
   const handleRefreshLinkedInPost = async (productId: string, postId: string, category: string, linkedNewsId?: string) => {
@@ -1201,11 +1297,13 @@ function App() {
     if (!p) return;
     const taskKey = `linkedin-gen-${productId}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
     try {
         const newsItem = linkedNewsId ? p.industryNews?.find(n => n.id === linkedNewsId) || null : null;
         const productContext = `Product: ${p.name}. Description: ${p.description}`;
         const buyerContext = p.dreamBuyer ? JSON.stringify(p.dreamBuyer) : "Target Audience: B2B Decision Makers";
-        const result = await generateLinkedInPost(productContext, buyerContext, newsItem, language, generationMode, category);
+        const result = await generateLinkedInPost(productContext, buyerContext, newsItem, language, generationMode, category, controller.signal);
         if (result) {
             updateProduct(prev => ({
                 linkedinPosts: prev.linkedinPosts?.map(post => 
@@ -1215,7 +1313,10 @@ function App() {
         }
     } catch (err: any) {
         console.error(err);
-    } finally { removeTask(taskKey); }
+    } finally {
+        abortControllersRef.current.delete(taskKey);
+        removeTask(taskKey);
+    }
   };
 
   const handleDeleteLinkedInPost = (postId: string) => {
@@ -1239,9 +1340,11 @@ function App() {
 
     const taskKey = `scene-refresh-${sceneNumber}`;
     addTask(taskKey);
+    const controller = new AbortController();
+    abortControllersRef.current.set(taskKey, controller);
 
     try {
-        const newSceneData = await refreshStoryboardScene(JSON.stringify(p), scene, p.location, language, generationMode);
+        const newSceneData = await refreshStoryboardScene(JSON.stringify(p), scene, p.location, language, generationMode, controller.signal);
         if (newSceneData) {
             updateProduct(prev => ({
                 storyboards: prev.storyboards?.map(sb => {
@@ -1258,6 +1361,7 @@ function App() {
     } catch (e) {
         console.error(e);
     } finally {
+        abortControllersRef.current.delete(taskKey);
         removeTask(taskKey);
     }
   }
@@ -1324,11 +1428,25 @@ function App() {
         onDeleteProduct={handleDeleteProduct}
         isMobileOpen={isMobileMenuOpen}
         closeMobileSidebar={() => setIsMobileMenuOpen(false)}
+        taskQueue={taskQueue}
       />
 
       {lightboxImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setLightboxImage(null)}>
-          <button className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors bg-white/10 rounded-full p-2" onClick={() => setLightboxImage(null)}><X size={32} /></button>
+          <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
+            <button 
+              className="text-white hover:text-indigo-300 transition-all bg-white/10 hover:bg-white/20 rounded-full p-2.5 flex items-center gap-2 text-xs font-bold px-4"
+              onClick={(e) => {
+                e.stopPropagation();
+                downloadImageFile(lightboxImage, `Image-Preview-${Date.now()}.png`);
+              }}
+              title="Download image"
+            >
+              <Download size={18} />
+              <span>Download</span>
+            </button>
+            <button className="text-white hover:text-gray-300 transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2" onClick={() => setLightboxImage(null)}><X size={26} /></button>
+          </div>
           <img src={lightboxImage} alt="Full preview" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}/>
         </div>
       )}
@@ -1340,6 +1458,7 @@ function App() {
             setActiveStep={(id) => validateAndNavigate(id)} 
             isStepComplete={isStepComplete} 
             onMenuClick={() => setIsMobileMenuOpen(true)}
+            taskQueue={taskQueue}
         />
         <main className="flex-1 overflow-y-auto p-4 lg:p-12 scroll-smooth">
             <div className="w-full mx-auto">
@@ -1436,7 +1555,7 @@ function App() {
                     case 'creatives': return <CreativesStep 
                       product={activeProduct} 
                       language={language} 
-                      loading={taskQueue.has(`creative-gen-${activeProduct.id}`) || taskQueue.has(`search-ads-gen-${activeProduct.id}`) || taskQueue.has(`email-gen-${activeProduct.id}`) || taskQueue.has(`storyboard-gen-${activeProduct.id}`) || taskQueue.has(`news-fetch-${activeProduct.id}`) || taskQueue.has(`linkedin-gen-${activeProduct.id}`)} 
+                      loading={taskQueue.has(`creative-gen-${activeProduct.id}`) || taskQueue.has(`search-ads-gen-${activeProduct.id}`) || taskQueue.has(`email-gen-${activeProduct.id}`) || taskQueue.has(`storyboard-gen-${activeProduct.id}`) || taskQueue.has(`news-fetch-${activeProduct.id}`) || taskQueue.has(`linkedin-gen-${activeProduct.id}`) || taskQueue.has(`software-gen-${activeProduct.id}`)} 
                       taskQueue={taskQueue} 
                       onGenerateCreative={(style, direction) => handleGenerateCreative(activeProduct.id, style, direction)} 
                       onRefreshText={(id, style) => handleGenerateCreative(activeProduct.id, style, undefined, id)} 
@@ -1444,27 +1563,28 @@ function App() {
                       onGenerateSearchAds={(dir) => handleGenerateSearchAdsTask(activeProduct.id, dir)} 
                       onGenerateEmailCampaign={(cat, sty, dir) => handleGenerateEmailCampaignTask(activeProduct.id, cat, sty, dir)} 
                       onGenerateStoryboard={(style, dir) => handleGenerateStoryboardTask(activeProduct.id, style, dir)} 
+                      onGenerateSoftware={(dir) => handleGenerateSoftwareTask(activeProduct.id, dir)}
                       onGenerateSceneImage={(num, prompt, base, storyboardId) => {
                           if (storyboardId) handleGenerateSceneImageTask(activeProduct.id, storyboardId, num, prompt, base);
                       }} 
                       onFileUpload={(e) => handleFileUpload(e)} 
                       onImagesPasted={(files) => processNewImages(files, activeProduct.id)}
-                      onUpdate={(creatives) => updateProduct({ creatives })} 
-                      onUpdateSearchAds={(searchAds) => updateProduct({ searchAds })} 
+                      onUpdate={(creatives) => updateProduct({ creatives }, activeProduct.id)} 
+                      onUpdateSearchAds={(searchAds) => updateProduct({ searchAds }, activeProduct.id)} 
                       onUpdateStoryboard={(sb) => {
                           // Handle singular update logic for backwards compat or specific case
                           // Ideally use dedicated updater
                       }} 
                       onFetchIndustryNews={(isLoadMore) => handleFetchIndustryNews(activeProduct.id, isLoadMore)} 
-                      onClearNews={() => updateProduct({ industryNews: [] })} 
+                      onClearNews={() => updateProduct({ industryNews: [] }, activeProduct.id)} 
                       onGenerateLinkedInPost={(news, style, dir) => handleGenerateLinkedInPost(activeProduct.id, news, style, dir)} 
                       onRefreshLinkedInPost={(postId, cat, linkedNewsId) => handleRefreshLinkedInPost(activeProduct.id, postId, cat, linkedNewsId)} 
                       onDeleteLinkedInPost={handleDeleteLinkedInPost} 
-                      onUpdatePhoneCampaign={(campaign: PhoneCampaign) => updateProduct({ phoneCampaign: campaign })}
+                      onUpdatePhoneCampaign={(campaign: PhoneCampaign) => updateProduct({ phoneCampaign: campaign }, activeProduct.id)}
                       onRefreshScene={(sceneNumber, storyboardId) => {
                           if(storyboardId) handleRefreshSceneTask(activeProduct.id, storyboardId, sceneNumber);
                       }}
-                      onUpdateProduct={(updates) => updateProduct(updates)}
+                      onUpdateProduct={(updates, targetId) => updateProduct(updates, targetId || activeProduct.id)}
                       setLightboxImage={setLightboxImage}
                     />;
                     case 'sales_page': return <SalesPageStep 

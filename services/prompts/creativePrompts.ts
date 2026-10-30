@@ -4,7 +4,7 @@ import { sanitizeContext, getLangName, EMAIL_SUBJECT_BLACKLIST, getMimeTypeFromB
 // --- Meta / Facebook Ads ---
 
 export const getMetaAdSystemInstruction = (lang: Language): string => 
-  `You are an elite direct-response copywriter. Your goal is extreme clarity and impact. Strictly use ${getLangName(lang)}. Use informal direct address.`;
+  `You are an elite direct-response copywriter. Your goal is extreme clarity, emotional resonance, and conversion. Strictly use ${getLangName(lang)}. Use informal direct address ("tu"). In direct response copywriting, always articulate the customer's real problem using the EXACT words they speak to themselves in their internal monologue, written with radical simplicity at a 4th-grade reading level (short sentences, simple everyday words, zero marketing jargon).`;
 
 export const buildMetaAdPrompt = (
   context: string,
@@ -22,6 +22,23 @@ export const buildMetaAdPrompt = (
       specificInstruction = "POP CULTURE TWIST: Create clever pop culture wordplay inspired by movies, music, or iconic phrases. Use humor that fits the product. Twist references creatively, never copy quotes exactly. Goal: Stop the scroll with a smart cultural wink.";
   } else if (style === 'Short-Human') {
       specificInstruction = "SHORT-HUMAN: RAW EMOTION. Write as a real person sharing a visceral moment related to the product and the specific ICP journey. Vulnerable, urgent, and unfiltered. Use any emojis that fit the mood. TOTAL CHARACTERS must be strictly under 240. It should feel like an authentic, honest message from one human to another.";
+  } else if (style === 'Direct-Response' || style === 'Direct Response') {
+      specificInstruction = `DIRECT RESPONSE FOCUS (CUSTOMER'S RAW PROBLEM IN THEIR EXACT SELF-TALK & 4TH-GRADE WRITING LEVEL):
+      • MENÇÃO OBRIGATÓRIA DO PROBLEMA COM AS PALAVRAS EXATAS DO DIÁLOGO INTERNO:
+        - DEVES mencionar e expor o problema e a dor do cliente usando com precisão as PALAVRAS EXATAS que ele fala para ele próprio na sua cabeça (o seu diálogo interno cru, sem filtros, quando está sozinho ou frustrado a lidar com o problema).
+        - Capta o que ele murmura para si mesmo no momento de maior desespero, cansaço ou frustração (ex: "Porque é que nada disto funciona comigo?", "Não aguento mais deitar dinheiro ao lixo", "Estou farto de acordar exausto todos os dias", "Tenho vergonha disto", "Já tentei de tudo e nada muda").
+        - PROIBIDO usar descrições de marketing limpas, corporativas, académicas ou genéricas sobre o problema. O Hook e o primeiro parágrafo do anúncio devem atacar imediatamente com essa frase de diálogo interno exata que o cliente reconhece na hora.
+      • NÍVEL DE LEITURA 4º ANO (4TH-GRADE LEVEL WRITING - MANDATÓRIO):
+        - Escrita ultra simples, limpa e direta que uma criança de 9 anos (4º ano de escolaridade) entende de imediato.
+        - Frases curtas. Vocabulário comum do dia a dia.
+        - ZERO jargão de marketing, ZERO palavras sofisticadas, ZERO floreados intelectuais ou metáforas complicadas.
+        - Ritmo ágil: afirmação direta, constatação crua da dor, solução simples.
+      • ESTRUTURA DO COPY (Hook -> Dor Real / Diálogo Interno -> Mecanismo Único Simples -> CTA):
+        - Hook: A frase ou pergunta curta que ecoa exatamente o que o cliente fala para si próprio na sua mente.
+        - Caption: 2 a 3 parágrafos curtos a validar essa frustração interna sem rodeios, apresentando a solução de forma simples e descomplicada (nível 4º ano), terminando com uma chamada à ação clara e sem atrito.
+        - Headline: Promessa direta ou pergunta impactante com palavras simples do quotidiano (máx 40 caracteres).
+        - Subheadline: Reforço direto e tranquilizador (máx 40 caracteres).
+        - CTA: Chamada para ação simples, direta e de baixa fricção.`;
   } else if (style === 'UGC/Raw') {
       specificInstruction = "UGC/RAW FOCUS: O estilo deve ser extremamente real, amador, credível e orgânico. CRITICAL REQUIREMENT FOR visualPrompt: O campo \"visualPrompt\" de retorno DEVE obrigatoriamente começar por: \"foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual\" e descrever o produto ou uma pessoa em contexto de uso real de forma amadora.";
   } else if (style === 'Unique-Mechanism') {
@@ -44,6 +61,51 @@ export const buildMetaAdPrompt = (
       specificInstruction = "SECRET INFO / REVEAL FOCUS: Mimic high-authority leaked information or secret reports. Create copy with a massive curiosity gap. The headline should present a 'reveal' or 'leaked' style statement (e.g., 'Metodologia secreta revelada...', 'O segredo de X revelado...', 'Mapa secreto de...'). The text must imply proprietary data, a chart, a graph, a map, or a crucial document screenshot that is being uncovered. Avoid generic sales copy; make it feel exclusive, secret, and authoritative.";
   } else if (style === 'Native-Social') {
       specificInstruction = "NATIVE SOCIAL POST FOCUS: Mimic the dominant style of major news or gossip pages on Meta. The headline must be written in a dramatic, punchy news/gossip/community style . CRITICAL: Do NOT use or repeat generic clickbait clichés like 'chocante', 'alerta', or 'urgente' in the headline. The primary text should look like an organic public announcement or a social gossip report, using casual, bold language that completely bypasses ad blindness. Max 80 characters";
+  } else if (style === 'Sign Meme' || style === 'Dude With Sign') {
+      specificInstruction = `SIGN MEME / DUDE WITH SIGN / RITMO RÁPIDO & DIRETO:
+      • RITMO E FORMA DO TEXTO: Frases curtas, pensamento rápido, sem rodeios, ritmo ágil e dinâmico. O estilo deve refletir a cadência natural de alguém a partilhar uma observação direta e sem filtros (como um tweet afiado ou um post perspicaz).
+      • PROIBIÇÃO DE META-FRASES: NUNCA uses frases literais como "Escrevi isto no telemóvel", "a escrever no telemóvel" ou "estava aqui a pensar no telemóvel". O efeito de rapidez deve transparecer no RITMO, na objetividade e nas frases curtas, nunca em menções literais ao telemóvel.
+      • HEADLINE (NO CARTAZ/PLACA): A declaração central, curta, em maiúsculas e sem filtros (máx 45 caracteres, e.g. 'PAREM DE GASTAR 50€ EM X', 'A TUA ROTINA É UMA MENTIRA', 'X É MELHOR QUE Y, CHANGE MY MIND', 'NINGUÉM TE AVISA DISTO').
+      • SUBHEADLINE (MIC-DROP): Remate irónico, assertivo ou sagaz em menos de 35 caracteres (e.g. 'Alguém tinha de dizer.', 'Facto indiscutível.', 'Quem discorda mente.').
+      • CAPTION: 2 a 3 parágrafos curtos, diretos e afiados de 'tu' para 'tu'. Começa logo a atacar o erro comum ou o mito do mercado sem introduções mornas, desmistifica a situação em poucas linhas com bom senso prático, e apresenta o produto como a alternativa óbvia e inteligente. Proibido jargão de marketing ou tom corporativo.`;
+  } else if (style === 'Handwritten Note' || style === 'Journal Note' || style === 'Journal Inspiration' || style === 'Redacted Truth' || style === 'Censored Truth') {
+      specificInstruction = `HANDWRITTEN JOURNAL NOTE / RAW PERSONAL REFLECTION (GRADE 5 READING LEVEL & 100% AMATEUR HUMAN TONE):
+      • CONCEITO: Uma nota rápida, crua, honesta e inspiradora escrita à mão num bloco de notas, caderno simples ou papel, como se fosse um desabafo ou pensamento genuíno partilhado nas redes por uma pessoa real (e NÃO por uma agência ou IA).
+      • TOM 100% HUMANO E AMADOR (PROIBIDO PARECER IA OU MARKETING):
+        - Escreve como uma pessoa normal a falar no dia a dia com um amigo.
+        - Zero jargão publicitário, zero palavras polidas ou frases clichê de marketing.
+        - Sem introduções robóticas. Linguagem descontraída, simples, crua e autêntica.
+      • NÍVEL DE LEITURA 5º ANO (MANDATÓRIO): Palavras comuns, fáceis de ler instantaneamente.
+      • FRASES SUPER CURTAS: Cadência rápida, frases diretas de uma linha.
+      • HEADLINE (O TEXTO ESCRITO À MÃO NO PAPEL): A frase inspiradora, controversa ou constatação simples escrita à mão no papel (ex: 'O teu maior erro é complicar.', 'Regra básica: menos ruído, mais foco.', 'Pára de tentar agradar a toda a gente.', 'X é muito mais simples do que pensas.'). Máx. 45 caracteres.
+      • SUBHEADLINE (NOTA RÁPIDA / PUNCHLINE): Um remate descontraído e curto (máx. 30 caracteres, e.g. 'Anotado para não esquecer.', 'A verdade nua e crua.', 'Simples assim.').
+      • CAPTION (TEXTO DO POST - ULTRA AMADOR & NATURAL):
+        - 2 a 3 parágrafos muito curtos (1 a 2 linhas cada), a falar de 'tu'.
+        - Começa logo com o desabafo ou a reflexão como quem acabou de anotar aquilo e quis partilhar.
+        - Menciona como o produto facilitou a vida de forma prática e simples, sem parecer um anúncio forçado.
+        - Termina com uma chamada de ação leve, natural e humana.`;
+  } else if (style === 'Highlight Method') {
+      specificInstruction = `HIGHLIGHT METHOD FOCUS (ASSINALAR PARTE IMPORTANTE COM CÍRCULO OU SETA DE MARCADOR):
+      • CONCEITO: Direcionar o foco visual instantaneamente para uma parte fundamental, detalhe, mecanismo ou ingrediente da imagem ou produto através de uma demarcação visual autêntica (como um círculo ou seta desenhados com caneta marcador).
+      • DEMARCAÇÃO VISUAL (CÍRCULO / SETA / ANOTAÇÃO): A imagem DEVE assinalar uma parte importante da foto/produto com um círculo desenhado à mão ou uma seta marcante de caneta marcador (estilo marca-texto amarelo fluorescente, verde-limão vibrante ou laranja vivo). NÃO é para escrever frases longas com o marcador — a função do marcador é assinalar visualmente o elemento-chave da imagem (círculo, seta, loop de destaque).
+      • PROIBIDO GLOWS / NEON ARTIFICIAL: O traço do marcador deve ter a textura autêntica e fosca de tinta de caneta marca-texto real desenhada sobre a imagem ou superfície.
+      • HEADLINE: Frase direta de alto impacto focada na parte assinalada ou na sua transformação (máx 40 caracteres).
+      • SUBHEADLINE: Reforço direto e conciso (máx 35 caracteres).
+      • CAPTION: Copy persuasivo e afiado explicando exatamente por que aquele detalhe assinalado é o divisor de águas.`;
+  } else if (style === 'Positive Vibe') {
+      specificInstruction = `POSITIVE VIBE / UPLIFTING QUOTE & WHOLESOME REFLECTION:
+      • CONCEITO: Criar um post altamente partilhável e reconfortante com uma mensagem curta, positiva e inspiradora de mindset/vida (estilo citações virais do Instagram/Pinterest como @positivelypresent ou @werenotreallystrangers). O objetivo é conectar pela empatia, positividade, encorajamento e perspetiva saudável.
+      • ADAPTAÇÃO TOTAL AO PRODUTO & NICHO (CRÍTICO): As cores de fundo, o estilo tipográfico (tipo de letra) e as ilustrações (doodles) DEVEM variar e ser personalizadas conforme o produto específico e a sua área de atuação:
+        - Bem-estar, Skincare & Beleza: tons suaves e elegantes (blush, pêssego, lavanda) com tipografia clássica/delicada e doodles botânicos, gotas de sérum, pétalas ou espelhos gentis.
+        - Produtividade, Software, Apps & Negócios: tons limpos e serenos (azul pastel, verde menta, creme/aveia) com tipografia moderna geométrica ou editorial limpa e doodles de faíscas de ideias, lâmpadas amigáveis, chávenas de café ou listas de conquistas.
+        - Fitness, Saúde & Desporto: tons energéticos e solares (terracota quente, amarelo dourado, tangerina) com tipografia marcante e doodles de nascer do sol, ténis, gotas de água ou setas dinâmicas.
+        - Alimentação, Café & Gastronomia: tons quentes e reconfortantes (mocha/café, caramelo, terracota, manteiga) com tipografia acolhedora e doodles de chávenas fumegantes, croissants, aromas ou pequenos corações.
+        - Animais & Pets: tons carinhosos e acolhedores com tipografia lúdica/arredondada e doodles de patinhas, caudas a abanar ou laços.
+        - Mindset, Coaching & Desenvolvimento Pessoal: tons de calma ou noites estreladas (matcha acolhedor, lilás sereno ou azul marinho profundo com texto branco) com tipografia editorial/livro e doodles de sementes a brotar, regadores, nuvens ou caminhos.
+      • RITMO E FORMA: Frases curtas, leves, humanas, acolhedoras e sem rodeios. Uma reflexão positiva conectada ao universo do produto que faça o utilizador parar o scroll, sentir-se bem, refletir e querer partilhar/guardar.
+      • HEADLINE (A CITAÇÃO / FRASE CENTRAL NA IMAGEM): A mensagem positiva curta e inspiradora personalizada para o nicho do produto (máx 60 caracteres, e.g. 'Life is a journey, not a competition.', 'Tu podes crescer ao teu próprio ritmo.', 'Foca no que te traz paz e energia.', 'Pequenos passos diários mudam tudo.').
+      • SUBHEADLINE (LEMBRETE / PUNCHLINE SUAVE): Um remate carinhoso e curto (máx 35 caracteres, e.g. 'Lembrete suave para hoje.', 'Guarda para reler.', 'Respira fundo e confia.').
+      • CAPTION: 2 a 3 parágrafos curtos, calorosos e humanos de 'tu' para 'tu'. Começa por aprofundar essa perspetiva positiva com empatia real, e liga com leveza a como o produto/serviço apoia uma vida mais simples, tranquila e equilibrada. Zero pressão de vendas agressiva ou jargão corporativo.`;
   } else if (style === 'Humor') {
       specificInstruction = "Create a split-screen comparison copy that directly addresses the competitor/alternative while praising our product. The 'headline' should be a pattern interrupt scroll stopping statement. The 'subheadline' should be a punchline.";
   } else {
@@ -69,20 +131,35 @@ export const buildMetaAdPrompt = (
   2. Não uses placeholders. Escreve texto final pronto para publicar.
   3. REGRAS DE TRATAMENTO OBRIGATÓRIO: Dirige-te ao utilizador estritamente por "TU". NÃO uses "Você".
   4. DIREÇÃO ESTRATÉGICA (CRÍTICO PARA visualPrompt): Se existir "USER SPECIFIC DIRECTION" ou Direção Estratégica nos dados acima, DEVES obrigatoriamente refletir e incorporar essa direção estratégica na descrição visual do campo "visualPrompt" para que a imagem gerada execute essa estratégia exata!
-  5. RESTRIÇÃO DE ESPAÇO: 
-  6. RESTRICÕES DE CAMPO: "headline" deve conter apenas o nome do remetente (e.g. 'Wifey 💬', 'Mãe 🧑') e "subheadline" deve ser a mensagem de texto SMS curta e instigante.
-     - "headline": ${style === 'YouTube-Thumbnail' ? 'Máximo 3/4 palavras. Muito curto e chocante (ex: "Fiz isto durante 30 dias!", "O segredo revelado!").' : style === 'Native-Social' ? 'Título estilo notícia, direto e conciso.' : 'Máximo 40 caracteres.'}
-     - "subheadline": ${style === 'YouTube-Thumbnail' ? 'Máximo 25 caracteres.' : 'Máximo 40 caracteres.'}
+  5. RESTRICÕES DE CAMPO:
+     - "headline": ${style === 'SMS-Mockup' ? 'Nome do remetente fictício ou contacto (e.g. "Wifey 💬", "Mãe 🧑", "Amigo", "Boss").' : style === 'YouTube-Thumbnail' ? 'Máximo 3/4 palavras. Muito curto e chocante (ex: "Fiz isto durante 30 dias!", "O segredo revelado!").' : style === 'Native-Social' ? 'Título estilo notícia, direto e conciso.' : style === 'Sign Meme' || style === 'Dude With Sign' ? 'A mensagem EXATA escrita no cartaz/placa (curto, maiúsculas, máx 45 caracteres).' : style === 'Handwritten Note' || style === 'Journal Note' || style === 'Journal Inspiration' || style === 'Redacted Truth' || style === 'Censored Truth' ? 'A frase inspiradora/controversa exata escrita à mão no papel/bloco (curto, máx 45 caracteres).' : style === 'Positive Vibe' ? 'A citação/afirmação positiva curta e inspiradora na imagem (curto, máx 60 caracteres).' : style === 'Direct-Response' || style === 'Direct Response' ? 'Promessa direta ou pergunta impactante em palavras simples do 4º ano (máx 40 caracteres).' : 'Máximo 40 caracteres.'}
+     - "subheadline": ${style === 'SMS-Mockup' ? 'A mensagem de texto SMS curta e instigante (máximo 35 caracteres).' : style === 'YouTube-Thumbnail' ? 'Máximo 25 caracteres.' : 'Máximo 40 caracteres.'}
   
-  ${style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'Direct-Response' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Native-Social' && style !== 'Humor' ? `CRITICAL REQUIREMENT FOR visualPrompt:
-  The "visualPrompt" field MUST start exactly with: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual, " followed by a description of the scene in a realistic, amateur, and candid setting. Never describe generic commercial studio setups, stock photos, clean-cut vectors, or 3D renderings.` : style === 'Product-First' ? `CRITICAL REQUIREMENT FOR visualPrompt:
-  The "visualPrompt" field MUST describe a high-quality professional product photography setup. The "visualPrompt" field MUST start exactly with: "fotografia de alta qualidade do produto, tirada numa canon eos r50, lente 85mm com shallow depth of field, iluminação de estúdio profissional, cinematic, fundo clean sem ruído, " followed by a description of the product in a pristine and elegant studio setting. Do NOT include or describe any text, lettering, or overlays on the image itself. The prompt description must contain exactly zero text overlay instructions. Keep it strictly visual.` : style === 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  ${style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'Direct-Response' && style !== 'Direct Response' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Native-Social' && style !== 'Humor' && style !== 'Sign Meme' && style !== 'Dude With Sign' && style !== 'Handwritten Note' && style !== 'Journal Note' && style !== 'Journal Inspiration' && style !== 'Redacted Truth' && style !== 'Censored Truth' && style !== 'Highlight Method' && style !== 'Positive Vibe' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST start exactly with: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual, " followed by a description of the scene in a realistic, amateur, and candid setting. Never describe generic commercial studio setups, stock photos, clean-cut vectors, or 3D renderings.` : style === 'Positive Vibe' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a warm, uplifting, aesthetically pleasing editorial social media quote graphic with charming hand-drawn doodles, colors, and typography tailored specifically to the PRODUCT, niche, and story of the quote with centered typography on a clean, solid background.
+
+  PRODUCT-DRIVEN ADAPTATION FOR COLORS, TYPOGRAPHY & DOODLE ILLUSTRATIONS (CRITICAL):
+  - The background color palette, typography font style, and doodle drawings MUST vary dynamically based on the specific PRODUCT and its industry:
+    * Skincare, Beauty & Self-care: soft blush rose, lavender mist, peach cream, or warm cream; delicate classic/editorial serif typography; cute botanical leaves, skincare serum drops, gentle mirrors, or blooming petals doodles.
+    * Productivity, Software & Tech: calming pastel sky blue, mint sage, or oat cream; crisp modern geometric sans-serif or refined editorial typography; friendly lightbulbs, sparks, organized checklist items, or cozy coffee mug doodles.
+    * Health, Fitness & Energy: warm terracotta rust, sunny golden yellow, or energetic coral; bold inspiring typography; vibrant sunrise, sneakers, water bottles, and dynamic energy burst doodles.
+    * Food, Coffee & Lifestyle: warm mocha/espresso, rich caramel, or warm terracotta; cozy rustic serif typography; steaming mugs, croissants, cheerful bakery, and heart steam doodles.
+    * Pets & Animals: warm honey, sage green, or soft lilac; playful friendly rounded typography; cute paw prints, wagging tails, little hearts, and playful pet accessory doodles.
+    * Coaching, Mindfulness & Mental Health: soothing matcha green, serene lilac, or deep midnight blue with ivory text; elegant classic book serif; cozy tea cups, peaceful clouds/stars, sprouting seedlings, and watering can doodles.
+  - TEXT CONTRAST GUARANTEE: The text color MUST alternate intelligently between deep charcoal/black (on light/pastel backgrounds) and crisp pure white / ivory (on dark/deep backgrounds) to guarantee flawless 100% reading legibility and optical contrast.
+
+  The "visualPrompt" field MUST start exactly with: "design gráfico minimalista e acolhedor estilo ilustração editorial de redes sociais, fundo de cor sólida " followed by the specific chosen background color tailored to the product (e.g. "amarelo manteiga suave", "pêssego acolhedor", "azul pastel sereno", "lavanda suave", "terracota quente", "azul marinho profundo", "verde matcha suave", "rosa blush suave", or "café mocha"), " com texto da citação inspiradora perfeitamente centralizado com tipografia " followed by the high-contrast font style tailored to the product (e.g. "elegante clássica serifada em preto/carvão escuro", "moderna limpa sem serifa em preto/carvão escuro", "editorial sofisticada em branco puro brilhante", or "lúdica arredondada em preto/carvão escuro") that says: " followed by the exact headline quote in quotes in ${getLangName(lang)}, ", acompanhado na borda inferior por ilustrações fofas de doodles desenhados à mão com contornos nítidos e expressivos diretamente conectados ao produto e à metáfora da citação, com detalhes coloridos em tons harmoniosos e pequenos brilhos/estrelinhas desenhados à mão, composição limpa, simétrica e espaçosa com margens generosas e zero ruído visual."` : style === 'Highlight Method' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a clean, realistic, high-impact photo where an important physical part, feature, or mechanism of the product/scene is clearly and unmistakably demarcated with a hand-drawn marker annotation (such as a bold drawn marker circle enclosing the key detail or a thick marker arrow pointing directly to the breakthrough part). The "visualPrompt" field MUST start exactly with: "foto natural de alta qualidade com foco nítido e iluminação limpa, fundo simples e minimalista sem ruído visual, com uma parte importante do produto ou da cena claramente assinalada e demarcada por uma anotação de caneta marcador (como um círculo grosso desenhado à mão a rodear o detalhe crucial ou uma seta de caneta marca-texto fluorescente amarela ou verde vibrante a apontar diretamente para o elemento-chave), " followed by a description of the clean scene, the sharp product in focus, and the specific circled or arrow-pointed detail.` : style === 'Product-First' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe an ultra-realistic advertising photo taken from iPhone with active physical interaction. The "visualPrompt" field MUST start exactly with: "Create an ultra-realistic, high-impact taken from iphone photo advertising image using the provided product reference image as the absolute visual truth. Preserve the product’s exact design, colors, materials, proportions, shape, finish, texture and visible details. The product must be physically engaged with at all times — held, used, applied, consumed, opened, worn or interacted with in a way that clearly communicates its purpose. Shadows must feel natural and anchor the product and model realistically in the scene. The final image should look like ultra-high-resolution advertising photography with extreme clarity, crisp detail, realistic material textures, natural skin texture and visible fabric detail. Avoid CGI look, illustration, floating product, lack of interaction, neutral facial expression, generic wardrobe, disconnected styling, artificial skin smoothing or over-stylization. simple background without noise. closeup on product, " followed by a description of the product in physical engagement and interaction. Do NOT include or describe any text, lettering, or overlays on the image itself. The prompt description must contain exactly zero text overlay instructions. Keep it strictly visual.` : style === 'Storytelling' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe an epic, high-end cinematic Hollywood scene. The "visualPrompt" field MUST start exactly with: "foto cinematográfica estilo hollywood, ângulo inclinado de dutch angle dramático, iluminação de estúdio estilosa com alto contraste, cores premium com tonalidades teal e orange e sombras profundas, composition dinâmica e elegante, " followed by a storytelling scene description that matches the core narrative.` : style === 'Versus' ? `CRITICAL REQUIREMENT FOR visualPrompt:
-  The "visualPrompt" field MUST describe a highly polished side-by-side comparison layout. The "visualPrompt" field MUST start exactly with: "foto de comparação lado a lado de dois produtos, split-screen split vertical, fundo limpo de estúdio com tom cinza suave na esquerda e tom creme suave na direita, com um distintivo circular preto minimalista no centro contendo o texto 'VS' escrito de forma limpa, no lado esquerdo uma embalagem premium mas tradicional de concorrente caro, and no lado direito o nosso produto como alternativa inovadora e moderna de alta qualidade, " followed by a detailed visual comparison describing our product on the right and the expensive version on the left. CRITICAL: Do NOT show any prices, pricing symbols, currency signs, or dollar/euro amounts anywhere on the image. Keep all text labels extremely brief (under 3 words per label), clean, highly legible and sophisticated, showing red cross icons on the left list and green checkmark icons on the right list.` : style === 'Short-Human' || style === 'Direct-Response' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a highly polished side-by-side comparison layout. The "visualPrompt" field MUST start exactly with: "foto de comparação lado a lado de dois produtos, split-screen split vertical, fundo limpo de estúdio com tom cinza suave na esquerda e tom creme suave na direita, com um distintivo circular preto minimalista no centro contendo o texto 'VS' escrito de forma limpa, no lado esquerdo uma embalagem premium mas tradicional de concorrente caro, and no lado direito o nosso produto como alternativa inovadora e moderna de alta qualidade, " followed by a detailed visual comparison describing our product on the right and the expensive version on the left. CRITICAL: Do NOT show any prices, pricing symbols, currency signs, or dollar/euro amounts anywhere on the image. Keep all text labels extremely brief (under 3 words per label), clean, highly legible and sophisticated, showing red cross icons on the left list and green checkmark icons on the right list.` : style === 'Short-Human' || style === 'Direct-Response' || style === 'Direct Response' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe an ultra-realistic, high-impact advertising image with a smiling model interacting with the product. The "visualPrompt" field MUST start exactly with: "foto publicitária de alta qualidade e impacto, plano aberto com perspectiva de lente grande angular dramática, iluminação de estúdio profissional limpa e de alto contraste focalizando a expressão sincera do modelo sorrindo de forma natural, com o modelo interagindo fisicamente com e segurando o produto, e uma faixa ou caixa escura de destaque na imagem com um título em letras brancas maiúsculas e negrito de alto impacto, " followed by a detailed description of the scene highlighting the authentic smiling model, product contact, headline banner, and premium environment.` : style === 'SMS-Mockup' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe a realistic iOS/Android SMS message popup mockup. The "visualPrompt" field MUST start exactly with: "a raw unedited candid iPhone photo of a real person smiling or a realistic lifestyle scene, overlaid in the upper center with a pristine semi-transparent white iOS-style SMS text message notification popup card with rounded corners, a green message app icon, a 'MESSAGES' header on the left and 'now' on the right, displaying a bold sender name and the text message text in quotes, " followed by a detailed description of the background lifestyle scene and the specific text message overlay content.` : style === 'Secret Info' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe a secret reveal or leak layout with an inset. The "visualPrompt" field MUST start exactly with: "foto de estilo relatório confidencial ou revelação secreta, plano de fundo com uma foto aérea ou foto realista do cenário, com um overlay semitransparente contendo um mapa esquemático detalhado, um gráfico científico ou um screenshot de documento analítico em destaque no canto superior direito, com uma faixa ou badge preta marcante na parte inferior escrito REVEALED de forma limpa, " followed by a description of the background scene, the specific map or chart details, and the product being revealed.` : style === 'Native-Social' ? `CRITICAL REQUIREMENT FOR visualPrompt:
-  The "visualPrompt" field MUST describe an organic social media news post format. The "visualPrompt" field MUST start exactly with: "foto natural estilo publicação de notícias das redes sociais, uma imagem principal de alta qualidade de uma pessoa de frente ou de um cenário real, com uma imagem circular secundária embutida no canto superior direito mostrando um detalhe do produto ou pessoa focada, e uma faixa ou caixa escura flutuante posicionada na parte inferior com margem de segurança de 15% acima da borda para o texto ficar 100% legível e nunca cortado em baixo, contendo um título em letras brancas maiúsculas e negrito no estilo notícia de impacto followed by a detailed description of the main person, the circle inset content, the bottom news banner with headline text (max 72 characters), and the product.` : style === 'Humor' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe an organic social media news post format. The "visualPrompt" field MUST start exactly with: "foto natural estilo publicação de notícias das redes sociais, uma imagem principal de alta qualidade de uma pessoa de frente ou de um cenário real, com uma imagem circular secundária embutida no canto superior direito mostrando um detalhe do produto ou pessoa focada, e uma faixa ou caixa escura flutuante posicionada na parte inferior com margem de segurança de 15% acima da borda para o texto ficar 100% legível e nunca cortado em baixo, contendo um título em letras brancas maiúsculas e negrito no estilo notícia de impacto followed by a detailed description of the main person, the circle inset content, the bottom news banner with headline text (max 72 characters), and the product.` : style === 'Sign Meme' || style === 'Dude With Sign' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a viral statement/sign meme photo in a realistic, candid lifestyle setting with visual variety and a complementary circular inset image. The "visualPrompt" field MUST start exactly with: "foto natural candid tirada do iphone estilo meme viral real, " followed by a creative scene setup choosing dynamically among: (1) a person holding up a cardboard sign with bold handwritten black marker text, (2) a person sitting outdoors at a folding table with a banner/sign in a 'Change My Mind' style with a coffee mug, (3) a person holding a dry-erase whiteboard or large notepad in a modern office/home setting, or (4) a stylish wooden sidewalk A-frame chalkboard outside a shop. Describe the person with an engaging, attention-grabbing expression that feels natural and scroll-stopping without being over the top (such as a knowing playful smirk, an intrigued eye contact, a witty eyebrow raise, a confident authentic smile, or a relatable reactive expression), the exact headline text clearly written on the sign in ${getLangName(lang)}, a secondary circular inset image embedded in the top-right corner with a clean thin border displaying a close-up detail of the product or relevant reaction, and the product subtly present or held naturally.` : style === 'Handwritten Note' || style === 'Journal Note' || style === 'Journal Inspiration' || style === 'Redacted Truth' || style === 'Censored Truth' ? `CRITICAL REQUIREMENT FOR visualPrompt:
+  The "visualPrompt" field MUST describe a raw, unedited, candid photo taken with an iPhone of a handwritten note with minimal background noise. The "visualPrompt" field MUST start exactly with: "foto natural raw unedited tirada do iphone em close-up de um pedaço de papel ou bloco de notas simples sobre uma mesa limpa com fundo minimalista e quase nenhum ruído visual, com uma frase curta escrita à mão com caneta preta ou azul de forma 100% nítida e legível que diz: " followed by the exact headline text in quotes in ${getLangName(lang)}, "iluminação natural sem filtros artificiais, com a folha em foco absoluto e fundo limpo e desfocado."` : style === 'Humor' ? `CRITICAL REQUIREMENT FOR visualPrompt:
   The "visualPrompt" field MUST describe a split-screen comparison layout. The "visualPrompt" field MUST start exactly with: "foto de comparação lado a lado, split-screen vertical claramente dividido ao meio. Uma cor de fundo vibrante e limpa na esquerda (adequada ao contexto do produto) e uma cor de fundo escura contrastante na direita. No lado esquerdo, o nosso produto ou a solução ideal com uma seta estilizada e texto positivo. No lado direito, uma alternativa comum ou produto tradicional relacionado ao mesmo nicho (por exemplo, se o produto é comida fresca para cães, o lado direito é ração seca), com texto descontraído, " followed by a description of the two distinct objects/scenarios, background colors suitable for the context, and the specific short text labels. Ensure the text labels are relatable and lighthearted, completely avoiding overly negative, aggressive, or sarcastic words like 'lixo' or 'trash'.` : ''}`;
 };
 
@@ -91,7 +168,7 @@ export const buildMetaAdPrompt = (
 export const buildCreativeImagePrompt = (
   prompt: string,
   style?: string,
-  composition?: string,
+  composition?: string | string[],
   brandKit?: any,
   lang: Language = 'en',
   hasBaseImages: boolean = false
@@ -102,6 +179,51 @@ export const buildCreativeImagePrompt = (
 ${prompt}
 CRITICAL MANDATE: The instruction above contains explicit strategic direction and modifications. It is STRICTLY MANDATORY and takes absolute precedence over all other generic stylistic guidelines. You MUST visibly, faithfully, and completely reflect this strategic direction and visual modification using the provided reference/base image(s) as the foundation.
 ` : "";
+
+  // Normalize composition / framing (supports up to 2 simultaneous framings)
+  const rawAngles: string[] = Array.isArray(composition)
+    ? composition.filter(Boolean)
+    : (composition ? [composition] : []);
+  const selectedAngles = rawAngles.length > 0 ? rawAngles.slice(0, 2) : ["Medium Shot"];
+
+  const getAngleDirective = (angle: string): string => {
+    switch (angle) {
+      case "Close-Up":
+        return "STRICT CLOSE-UP FRAMING: Tight shot focusing closely on the primary subject/product/face, capturing fine textures, high-definition surface details, and tactile qualities while tightly cropping background surroundings.";
+      case "Macro Shot":
+        return "STRICT MACRO SHOT FRAMING: Extreme close-up macro perspective revealing microscopic textures, fine craftsmanship, droplet/grain detail, and ultra-crisp focus with beautiful shallow depth of field.";
+      case "Medium Shot":
+        return "STRICT MEDIUM SHOT FRAMING: Waist-up or mid-distance framing capturing the product/subject in clear focus while authentically grounding it within its immediate functional environment.";
+      case "3/4 Angle Shot":
+        return "STRICT 3/4 ANGLE SHOT FRAMING: Dynamic three-quarter volumetric perspective showing dimensional side profile, spatial depth, and sculpted form of the subject/product.";
+      case "Full Shot":
+        return "STRICT FULL SHOT FRAMING: Complete scene where the entire product/subject is fully visible from head-to-toe / top-to-bottom within its atmospheric context.";
+      case "Wide Establishing Shot":
+        return "STRICT WIDE ESTABLISHING SHOT: Expansive cinematic field of view establishing the environmental world, spatial architecture, and spacious natural context.";
+      case "Low Angle":
+        return "STRICT LOW ANGLE (WORM'S-EYE) PERSPECTIVE: Camera placed distinctly below the subject looking upward, creating a heroic, monumental, powerful, and commanding visual presence.";
+      case "High Angle":
+        return "STRICT HIGH ANGLE (BIRD'S-EYE / TOP-DOWN) PERSPECTIVE: Camera positioned directly above or at a steep downward incline looking onto the subject/tabletop arrangement.";
+      case "Over the Shoulder":
+        return "STRICT OVER-THE-SHOULDER PERSPECTIVE: Immersive first-person point of view captured from right behind a person's shoulder/back looking directly at the product or action.";
+      case "Dutch Angle":
+        return "STRICT DUTCH ANGLE PERSPECTIVE: Noticeably tilted, slanted camera roll generating high-energy cinematic tension, motion, and visual drama.";
+      case "Faceless":
+      case "Faceless Shot":
+        return "STRICT FACELESS FRAMING (MANDATORY: NO VISIBLE FACE / NÃO MOSTRAR CARA): Absolutely DO NOT show the model's or person's face. The visual must be 100% faceless. Frame the shot strictly without showing any eyes, nose, mouth, head, or recognizable facial features — crop carefully from the neck or chest down, capture from behind or over-the-shoulder, show hands/arms/torso interacting naturally with the product, or focus exclusively on the product and tactile physical interaction. Under NO circumstances should any human face or facial identity be recognizable or visible in the composition.";
+      default:
+        return `STRICT CAMERA ANGLE & FRAMING: Explicitly execute a ${angle} framing with crisp geometric discipline.`;
+    }
+  };
+
+  const angleDetailedDirectives = selectedAngles.map(a => getAngleDirective(a));
+  const combinedAngleLabel = selectedAngles.join(" + ");
+  const framingInstructionsCombined = selectedAngles.length > 1
+    ? `DUAL-FRAMING SYNTHESIS: Seamlessly unify and harmonize both requested angles [${selectedAngles[0]}] AND [${selectedAngles[1]}]. Specifically:
+    1) Primary Framing (${selectedAngles[0]}): ${angleDetailedDirectives[0]}
+    2) Secondary Framing & Perspective Modulation (${selectedAngles[1]}): ${angleDetailedDirectives[1]}
+    Synthesize these two camera perspectives into one cohesive, visually striking shot (e.g. combine camera elevation with shot distance, or tilt with subject proximity).`
+    : `SINGLE CAMERA DIRECTIVE: ${angleDetailedDirectives[0]}`;
 
   let styleRules = "";
 
@@ -187,10 +309,18 @@ TEXT & OVERLAYS:
     `;
   } else if (style === 'Highlight Method') {
     styleRules = `
-    Highlight Method Rules:
-    Focus on a specific feature, benefit, or word. Use visual highlighters (like a neon marker effect), circles, or arrows to draw immediate attention to the most important part of the image or text.
-    High contrast, clean background to make the highlighted element pop.
-    Goal: Direct the viewer's eye instantly to the core value proposition or key feature.
+    Highlight Method Creative Rules (VISUAL ANNOTATION: CIRCLE / ARROW / MARKER POINTER):
+    Goal: Direct the viewer's eye instantly to a crucial physical part, mechanism, ingredient, or key feature of the image using a hand-drawn marker circle or arrow.
+    • VISUAL DEMARCATION (CIRCLE / ARROW / CALLOUT):
+      - Prominently demarcate an important part of the product or image with an authentic, bold marker annotation (such as a thick, hand-drawn highlighter circle enclosing a key component/detail, or a bold marker arrow pointing directly at the breakthrough feature).
+      - Do NOT force writing sentences with the marker. The marker is used to visually circle, point to, or frame the important part of the image/product.
+      - Use high-contrast vibrant marker colors (such as fluorescent highlighter yellow, neon lime, vivid red or orange) with authentic marker ink texture.
+    • ZERO SCI-FI GLOWS OR NEON HALOS:
+      - The marker stroke must have the physical texture of real highlighter/marker ink drawn on the surface — NOT synthetic sci-fi laser beams, neon light tubes, or digital glow flares.
+    • COMPOSITION & LIGHTING:
+      - High-contrast, clean, uncluttered background with minimal visual noise to make the circled/arrowed detail pop aggressively.
+      - Crisp, natural studio or daylight lighting with soft natural shadows.
+    • FOCAL ELEMENT: The circled or arrow-pointed part of the product is tack-sharp, vivid, and unmistakable in the frame.
     `;
   } else if (style === 'UGC/Raw') {
     styleRules = `
@@ -201,12 +331,7 @@ TEXT & OVERLAYS:
     `;
   } else if (style === 'Product-First') {
     styleRules = `
-    Product-First Creative Rules:
-    Goal: Attention grabbing Professional Realistic product presentation focusing 100% on the physical product
-    • STYLE: a Scroll Stopper Realistic studio photography with raw unedited look.
-    • LIGHTING: Professional studio lighting, cinematic, clean gradients, soft highlights.
-    • CAMERA: Captured on a Canon EOS R50 with an 85mm lens, shallow depth of field, sharp detail on the product itself.
-    • COMPOSITION: Clean background with zero noise, minimal modern setting.
+    Create an ultra-realistic, high-impact taken from iphone photo advertising image using the provided product reference image as the absolute visual truth. Preserve the product’s exact design, colors, materials, proportions, shape, finish, texture and visible details. The product must be physically engaged with at all times — held, used, applied, consumed, opened, worn or interacted with in a way that clearly communicates its purpose. Shadows must feel natural and anchor the product and model realistically in the scene. The final image should look like ultra-high-resolution advertising photography with extreme clarity, crisp detail, realistic material textures, natural skin texture and visible fabric detail. Avoid CGI look, illustration, floating product, lack of interaction, neutral facial expression, generic wardrobe, disconnected styling, artificial skin smoothing or over-stylization. simple background without noise. closeup on product
     • NO TEXT OVERLAYS: There must be absolutely no text, typography, letters, words, or overlays in the image prompt or scene. Focus strictly on any visual/realistic details of the physical product. Do not place any text.
     `;
   } else if (style === 'Storytelling') {
@@ -268,6 +393,86 @@ TEXT & OVERLAYS:
     • NO BRAND LABELS: Do NOT use literal labels like "Our Product" or "Competitor".
     • TONE: Lighthearted, meme-like, relatable, and extremely fast to read. Avoid overly aggressive or negative words.
     `;
+  } else if (style === 'Sign Meme' || style === 'Dude With Sign') {
+    styleRules = `
+    Sign Meme / Statement Cardboard / Change My Mind Creative Rules:
+    Goal: Create a viral, candid, scroll-stopping social meme photograph featuring a bold statement on a sign, board, or table setup (inspired by viral phenomena like 'Dude With Sign' or 'Change My Mind').
+    • REALISTIC PHOTOGRAPHY: Raw, unedited, candid iPhone lifestyle photo aesthetic (UGC feel). Natural lighting, authentic depth of field, real-world street, cafe, park, campus, home, or office setting with clean visual balance.
+    • VISUAL VARIETY (DYNAMIC SCENE SETUP):
+      - Format 1 (Street Cardboard / Dude With Sign): A relatable person standing in a city street, sidewalk, or cafe holding up a classic kraft brown cardboard sign with bold black handwritten marker letters.
+      - Format 2 (Change My Mind Table): A person sitting outdoors at a folding table in a park or university plaza, with a banner or table sign and a coffee mug, looking relaxed with a confident smirk.
+      - Format 3 (Office / Studio Whiteboard / Notepad): A person holding up a whiteboard, legal notepad, or clipboard with handwritten text.
+      - Format 4 (Sidewalk Chalkboard): A stylish wooden A-frame cafe chalkboard sitting outside on a pavement with clean, legible chalk lettering.
+    • THE STATEMENT / TEXT (CRITICAL):
+      - The text on the sign MUST be 100% sharp, bold, high-contrast, and legible.
+      - All text on the sign MUST be in ${getLangName(lang).toUpperCase()}.
+      - The text must state the exact, punchy headline statement described in the visual prompt.
+    • SECONDARY CIRCULAR INSET IMAGE (CRITICAL COMPLEMENTARY DETAIL):
+      - In the top-right corner or upper-right area, display a stylish secondary circular inset image frame (with a clean thin white/dark border).
+      - Inside this circular inset, show a sharp close-up detail of the physical product, key texture/feature, or a candid relatable reaction shot that complements the statement on the sign.
+    • SUBJECT & EXPRESSION (ENGAGING & ATTENTION-GRABBING WITHOUT BEING OVER THE TOP): The person does NOT need to look strictly bored or deadpan. Give them a lively, captivating expression that stops the scroll naturally without looking exaggerated or cartoonish (e.g., a knowing playful smirk, an amused or intrigued direct eye contact, a witty eyebrow raise, a confident authentic smile, or a relatable 'aha' reaction).
+    • PRODUCT INTEGRATION: If a base product image is provided, integrate the physical product naturally (in the circular inset and/or held casually in one hand or sitting on the table next to the coffee mug).
+    • NO CLUTTER: Do not add unnecessary digital stickers, app UI overlays, fake buttons, or synthetic badges. Keep it looking like a real, viral social media photo.
+    `;
+  } else if (style === 'Positive Vibe') {
+    // Dynamic palette variations for Positive Vibe
+    const positiveVibePalettes = [
+      { bg: "soft warm buttercup yellow (#FFF4BD)", text: "deep charcoal black (#111111)", accent: "cheerful orange and soft coral doodles" },
+      { bg: "soft apricot peach (#FFE5D9)", text: "deep charcoal black (#111111)", accent: "warm terracotta and gentle gold doodles" },
+      { bg: "serene pastel sky blue (#E0F2FE)", text: "deep charcoal black (#111111)", accent: "soft navy, sunny yellow and white cloud doodles" },
+      { bg: "delicate lavender lilac (#EDE9FE)", text: "deep charcoal black (#111111)", accent: "purple, warm pink and butter yellow doodles" },
+      { bg: "soft blush rose (#FCE7F3)", text: "deep charcoal black (#111111)", accent: "vibrant strawberry, tangerine and sage doodles" },
+      { bg: "creamy mint foam / matcha sage (#D1FAE5)", text: "deep charcoal black (#111111)", accent: "forest green, warm amber and apricot doodles" },
+      { bg: "warm terracotta rust (#C2593F)", text: "crisp pure white (#FFFFFF)", accent: "cream, mustard yellow and peach doodles" },
+      { bg: "deep midnight navy blue (#1E293B)", text: "crisp pure white (#FFFFFF)", accent: "glowing gold, soft sky blue and warm cream doodles" },
+      { bg: "rich plum / berry wine (#581C87)", text: "crisp pure white (#FFFFFF)", accent: "soft lilac, pastel yellow and warm pink doodles" },
+      { bg: "warm deep mocha / espresso (#451A03)", text: "crisp pure white / bright cream (#FFFBEB)", accent: "warm honey, amber and soft peach doodles" },
+      { bg: "vibrant sunset tangerine coral (#EA580C)", text: "crisp pure white (#FFFFFF)", accent: "warm cream, golden yellow and soft blush doodles" },
+      { bg: "rich deep forest olive (#14532D)", text: "crisp pure white / ivory (#F0FDF4)", accent: "mint, soft gold and light peach doodles" }
+    ];
+    const randomPalette = positiveVibePalettes[Math.floor(Math.random() * positiveVibePalettes.length)];
+
+    styleRules = `
+    Positive Vibe / Wholesome Illustrated Quote Graphic Rules:
+    Goal: Create a warm, uplifting, comforting, aesthetically pleasing editorial social media quote graphic with charming hand-drawn doodles directly inspired by the quote's story/metaphor and centered typography on a beautiful, clean, solid background with flawless reading contrast.
+    • PRODUCT-ALIGNED PALETTE, TYPOGRAPHY & DOODLE ART:
+      - The color palette, typography font style, and doodle illustrations MUST dynamically adapt to the specific PRODUCT, industry, and emotional mood:
+        * Wellness / Skincare / Beauty: soft blush, peach, lavender, or sage tones with delicate serif typography and botanical leaves, skincare drops, or self-care doodles.
+        * Productivity / Tech / Apps: calm sky blue, clean mint, or oat cream with clean modern sans-serif typography and friendly sparks, lightbulbs, or organized task doodles.
+        * Fitness / Health / Energy: warm terracotta, sunny buttercup, or coral tones with bold inspiring typography and sunrise, sneakers, or dynamic energy doodles.
+        * Food / Beverage / Coffee: warm mocha/espresso, caramel, or honey tones with cozy rustic serif typography and steaming cups, croissants, or bakery doodles.
+        * Pets / Animals: warm friendly tones with playful rounded typography and cute paw prints, wagging tails, or pet accessory doodles.
+        * Mindset / Coaching / Growth: soothing matcha green, serene lilac, or deep night blue with elegant book serif typography and sprouting seedlings, watering cans, tea mugs, or winding trail doodles.
+    • DYNAMIC COLOR VARIETY: Use diverse, aesthetically pleasing solid color backgrounds across generations (such as ${randomPalette.bg} or other vibrant/pastel solid colors). The background must be smooth, clean, solid, and pleasant with zero harsh digital gradients or noisy artifacts.
+    • TEXT CONTRAST & TYPOGRAPHY:
+      - Display the short uplifting quote/affirmation in clear, crisp, elegant typography with generous line-height and centered alignment.
+      - CONTRAST GUARANTEE: The text color MUST provide maximum optical contrast against the background:
+        * On light / pastel backgrounds: typography MUST be deep charcoal black (#111111) for crisp readability.
+        * On dark / rich / saturated backgrounds (such as terracotta, deep navy, rich plum, olive, or mocha): typography MUST be crisp pure white (#FFFFFF) or bright ivory for brilliant high contrast.
+      - Recommended pairing for this generation: Background: ${randomPalette.bg} with Typography in ${randomPalette.text}.
+    • HAND-DRAWN DOODLES & STORYTELLING ART: At the bottom edge or gently framing the canvas, include charming minimalist hand-drawn doodle illustrations with clean outlines and cheerful colored fills (${randomPalette.accent}). The doodles MUST relate directly to the product context, storytelling, and visual metaphor of the quote.
+    • COMPOSITION: Symmetrical, balanced, breathable layout with generous negative space. Clean margins so text and doodles never touch the outer canvas borders.
+    • NO PHOTOREALISTIC 3D GLOSS / NO SCI-FI: Pure charming illustrated graphic design that feels heartfelt, artistic, wholesome, and instantly shareable on Instagram/Pinterest/Facebook.
+    • IGNORE BASE IMAGES / ZERO REALISTIC PRODUCT PHOTOS: Strictly do NOT composite or force real photo cutouts or product packaging photos into this graphic. Keep the entire artwork purely illustrated in clean graphic doodle style.
+    `;
+  } else if (style === 'Handwritten Note' || style === 'Journal Note' || style === 'Journal Inspiration' || style === 'Redacted Truth' || style === 'Censored Truth') {
+    styleRules = `
+    Handwritten Note / Raw iPhone Photo / Clean Minimal Background Creative Rules:
+    Goal: Create an authentic, raw, unedited candid photo taken with an everyday iPhone of a handwritten note or notepad on a clean surface with minimal/low background noise.
+    • COMPOSITION & SETTING (IPHONE PHOTO WITH VERY LOW VISUAL NOISE):
+      - Candid top-down flatlay or slight macro angle taken directly from an iPhone camera.
+      - A clean, simple piece of paper, notepad, post-it, or minimalist open notebook resting on a clean plain surface (e.g. clean neutral desk, minimalist tabletop, or bedsheet).
+      - MINIMAL BACKGROUND NOISE / VERY LOW CLUTTER: Keep the background extremely clean, calm, and uncluttered without distracting props or busy textures.
+      - Natural everyday lighting (soft natural daylight from a nearby window, no artificial glossy studio lights).
+    • THE HANDWRITTEN NOTE (THE HERO):
+      - The text on the paper MUST look genuinely HANDWRITTEN by a real person with a black or dark blue ballpoint pen, gel pen, or marker.
+      - The handwriting must be 100% CLEAR, LEGIBLE, and natural (not robotic digital fonts, but real human handwriting).
+      - The statement MUST state the exact headline text in ${getLangName(lang).toUpperCase()}.
+      - Can include subtle authentic touches like a natural quick underline under 1-2 words or a small star/bullet point.
+    • PRODUCT INTEGRATION:
+      - If a base product image is provided, integrate the physical product naturally and subtly next to the paper on the clean surface.
+    • NO ARTIFICIAL CLUTTER: Zero synthetic badges, fake 3D stickers, digital overlays, or corporate marketing banners. It must look like a real photo snapped on a smartphone.
+    `;
   } else {
     // Default / General fallback
     styleRules = `
@@ -277,7 +482,7 @@ TEXT & OVERLAYS:
     `;
   }
 
-  const rawUgcOverride = (style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Secret Insider' && style !== 'Native-Social' && style !== 'Humor') ? `
+  const rawUgcOverride = (style !== 'YouTube-Thumbnail' && style !== 'Product-First' && style !== 'Storytelling' && style !== 'Versus' && style !== 'Short-Human' && style !== 'SMS-Mockup' && style !== 'Secret Info' && style !== 'Secret Insider' && style !== 'Native-Social' && style !== 'Humor' && style !== 'Sign Meme' && style !== 'Dude With Sign' && style !== 'Handwritten Note' && style !== 'Journal Note' && style !== 'Journal Inspiration' && style !== 'Redacted Truth' && style !== 'Censored Truth' && style !== 'Highlight Method' && style !== 'Positive Vibe') ? `
     CRITICAL IMAGE STYLE OVERRIDE (INSTAGRAM MANDATORY STYLE):
     • OVERRIDE ESTHETIC: "foto natural raw unedited tirada do iphone ugc style, com fundo simples com pouco ruído visual".
     • The scene must look completely real, raw, candid, authentic, and amateur as if taken on an everyday smartphone camera (iPhone).
@@ -285,15 +490,49 @@ TEXT & OVERLAYS:
     • Avoid all signs of: professional studio setups, artificial lighting, sterile stock setups, clean 3D renderings, flawless commercial design setups, or pristine synthetic visuals.
   ` : "";
 
+  const isFaceless = selectedAngles.some(a => a.toLowerCase().includes("faceless"));
+  const facelessOverride = isFaceless ? `
+    🚫 ABSOLUTE MANDATORY NEGATIVE CONSTRAINT — FACELESS FRAMING (ZERO FACES / NÃO MOSTRAR CARA):
+    • DO NOT SHOW ANY HUMAN FACE. 
+    • The visual and model MUST be completely faceless. 
+    • Frame the visual strictly without any human face visible: crop carefully from the neck or chest down, position the camera behind the person/over-the-shoulder, show hands and arms interacting with the product, or focus directly on the product in its environment.
+    • OVERRIDE: Completely disregard and discard any other instruction that mentions smiling, facial expressions, eye contact, looking into the camera, or lighting on a face. Absolutely zero facial features (eyes, nose, mouth) may appear anywhere in the final image.
+  ` : "";
+
+  let processedStyleRules = styleRules;
+  let sanitizedVisualPrompt = prompt;
+
+  if (isFaceless) {
+    processedStyleRules = processedStyleRules
+      .replace(/The model must be smiling naturally, with genuine candid natural expression\./g, "The shot must be strictly faceless (crop below neck or show hands/body interacting without visible face).")
+      .replace(/The model’s face should be well-lit, showing natural skin texture, pores and expression detail\./g, "The subject is faceless; focus lighting on the hands, product, and material textures.");
+
+    sanitizedVisualPrompt = sanitizedVisualPrompt
+      .replace(/focalizando a expressão sincera do modelo sorrindo de forma natural/gi, "enquadramento faceless sem mostrar a cara, foco no produto e mãos")
+      .replace(/expressão sincera do modelo sorrindo/gi, "interação natural sem mostrar a cara (faceless)")
+      .replace(/smiling model/gi, "faceless model (no visible face)")
+      .replace(/smiling naturally/gi, "faceless interaction (no face visible)");
+  }
+
   return `
     ${priorityHeader}
+    
+    📸 CRITICAL MANDATORY CAMERA ANGLE & FRAMING DIRECTIVE (HIGHEST PRIORITY):
+    • MANDATORY CAMERA ANGLE(S): >> ${combinedAngleLabel.toUpperCase()} <<
+    • FRAMING EXECUTION INSTRUCTION:
+      ${framingInstructionsCombined}
+    • ABSOLUTE COMPOSITION MANDATE: The camera framing is the most decisive visual factor in this image. You MUST strictly compose, align, and shoot the scene adhering 100% to this exact camera perspective (${combinedAngleLabel}). Do NOT revert to a generic angle or default shot. The entire optical composition, camera distance, focal perspective, lens tilt/elevation, and depth-of-field MUST unambiguously embody this ${combinedAngleLabel} framing!
+    ${facelessOverride}
+
     ${rawUgcOverride}
-    ${styleRules}
+    ${processedStyleRules}
 
     SPECIFIC CONTEXT FOR THIS GENERATION:
-    VISUAL DESCRIPTION: ${prompt}
-    CAMERA ANGLE: ${composition || "Medium Shot"}.
-    FRAMING CONSTRAINT: This image will be explicitly cropped to a tight vertical 4:5 aspect ratio (Instagram/Meta Portrait format). Ensure the main subject, texts, and CTA are centered and vertically aligned so they fit perfectly within a 4:5 vertical portrait screen layout.
+    VISUAL DESCRIPTION: ${sanitizedVisualPrompt}
+    CAMERA ANGLE / ENQUADRAMENTO: ${combinedAngleLabel}
+    ${isFaceless ? 'FACELESS MANDATE: DO NOT SHOW ANY FACES. Frame strictly without showing head/face.' : ''}
+    FRAMING DIRECTIVES: ${selectedAngles.map((a, i) => `[${i + 1}] ${a}: ${angleDetailedDirectives[i]}`).join(" | ")}
+    FRAMING CONSTRAINT: This image will be explicitly cropped to a tight vertical 4:5 aspect ratio (Instagram/Meta Portrait format). Ensure the main subject, texts, and CTA are centered and vertically aligned so they fit perfectly within a 4:5 vertical portrait screen layout with the requested ${combinedAngleLabel} perspective.
     ${hasBaseImages ? `FOUNDATION ASSET(S): Use the provided product image(s) as the absolute base and hero of the composition. You may be provided with multiple reference images; use them to understand the product from different angles or contexts.
     CRITICAL RULE: The product from the image reference MUST be the primary focus and foundation shot. 
     CONSTRAINT: DO NOT PLACE reference images on the back of computers, smartphones, etc.` : 'FOUNDATION ASSET(S): No reference images provided. Generate a high-quality visual based strictly on the description.'}
@@ -378,7 +617,7 @@ export const buildStoryboardPrompt = (
             
             CINEMATIC VARIETY IS MANDATORY. 
             DIRETRIZES DE SCRIPT E VISUAIS:
-            1. Usa o framework de Direct Response (Hook -> Pain -> Mechanism -> Proof -> CTA).
+            1. Usa o framework de Direct Response (Hook -> Pain -> Mechanism -> Proof -> CTA). No Hook e Pain, menciona o problema do cliente com as palavras exatas que ele fala para ele próprio no seu diálogo interno, com escrita simples ao nível do 4º ano (4th-grade level writing, sem jargão).
             2. O Voiceover deve ser conversacional e rápido.
             3. O On-Screen Text deve ser curto e impactante.
             4. CINEMATIC VARIETY (MANDATÓRIO): Cada cena deve tel um enquadramento diferente.

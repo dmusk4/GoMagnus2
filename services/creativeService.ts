@@ -1,6 +1,6 @@
 import { Type } from "@google/genai";
 import { Language, GenerationMode, EmailStyle, IndustryNews, SoftwareRecommendation } from "../types";
-import { getAI, getModel, extractJSON, extractJsonArrayObjects, imageUrlToBase64 } from "./aiCore";
+import { getAI, getModel, getModelFallbackChain, extractJSON, extractJsonArrayObjects, imageUrlToBase64 } from "./aiCore";
 import { 
   buildMetaAdPrompt, 
   getMetaAdSystemInstruction, 
@@ -15,7 +15,8 @@ import {
   buildSoftwareRecommendationsPrompt
 } from "./prompts/creativePrompts";
 
-export const generateCreativeText = async (context: string, style: string, location: string, lang: Language, mode: GenerationMode, strategicPillar?: string, isRefresh: boolean = false): Promise<any> => {
+export const generateCreativeText = async (context: string, style: string, location: string, lang: Language, mode: GenerationMode, strategicPillar?: string, isRefresh: boolean = false, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     
     const schema = {
@@ -31,18 +32,33 @@ export const generateCreativeText = async (context: string, style: string, locat
         required: ["hook", "headline", "subheadline", "caption", "cta", "visualPrompt"]
     };
 
-    try {
-        const response = await ai.models.generateContent({
-            model: getModel(mode),
-            contents: buildMetaAdPrompt(context, location, style, lang, strategicPillar, isRefresh),
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: schema,
-                systemInstruction: getMetaAdSystemInstruction(lang)
+    const prompt = buildMetaAdPrompt(context, location, style, lang, strategicPillar, isRefresh);
+    const systemInstruction = getMetaAdSystemInstruction(lang);
+    const candidateModels = getModelFallbackChain(getModel(mode));
+
+    for (const model of candidateModels) {
+        if (signal?.aborted) return null;
+        try {
+            const response = await ai.models.generateContent({
+                model: model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: schema,
+                    systemInstruction: systemInstruction
+                }
+            });
+            if (signal?.aborted) return null;
+            const parsed = extractJSON(response.text);
+            if (parsed && (parsed.headline || parsed.caption || parsed.hook)) {
+                return parsed;
             }
-        });
-        return extractJSON(response.text);
-    } catch (e) { return null; }
+        } catch (e: any) {
+            if (signal?.aborted) return null;
+            console.warn(`generateCreativeText failed with model ${model}, trying next model...`, e?.message || e);
+        }
+    }
+    return null;
 };
 
 const cropImageCenter = (base64: string, targetAspectRatio: number): Promise<string> => {
@@ -86,20 +102,26 @@ export const generateCreativeImage = async (
     prompt: string, 
     baseImages?: string | string[], 
     aspectRatio: string = "1:1", 
-    composition?: string, 
+    composition?: string | string[], 
     brandKit?: any, 
     style?: string,
-    lang: Language = 'en'
+    lang: Language = 'en',
+    signal?: AbortSignal
 ): Promise<string | null> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     try {
-        // Handle single string or array of strings
-        const rawImages = Array.isArray(baseImages) 
-            ? baseImages 
-            : (baseImages ? [baseImages] : []);
+        // For Positive Vibe style, ignore baseImages to maintain the clean illustrated doodle & pastel background aesthetic
+        const isPositiveVibe = style === 'Positive Vibe';
+        const rawImages = isPositiveVibe 
+            ? [] 
+            : (Array.isArray(baseImages) 
+                ? baseImages 
+                : (baseImages ? [baseImages] : []));
 
         const validBase64Images: string[] = [];
         for (const img of rawImages) {
+            if (signal?.aborted) return null;
             if (!img) continue;
             if (img.startsWith('data:')) {
                 validBase64Images.push(img);
@@ -111,6 +133,7 @@ export const generateCreativeImage = async (
             }
         }
 
+        if (signal?.aborted) return null;
         const finalPrompt = buildCreativeImagePrompt(prompt, style, composition, brandKit, lang, validBase64Images.length > 0);
 
         const parts: any[] = [{ text: finalPrompt }];
@@ -132,6 +155,7 @@ export const generateCreativeImage = async (
         const imageModels = ['gemini-3.1-flash-image', 'gemini-2.5-flash-image'];
         
         for (const model of imageModels) {
+            if (signal?.aborted) return null;
             try {
                 // Map "4:5" or "4x5" to "3:4" as it is the closest officially supported portrait aspect ratio in Gemini Image models
                 let finalRatio = aspectRatio;
@@ -147,6 +171,8 @@ export const generateCreativeImage = async (
                     }
                 });
 
+                if (signal?.aborted) return null;
+
                 if (response.candidates?.[0]?.content?.parts) {
                     for (const part of response.candidates[0].content.parts) {
                         if (part.inlineData?.data) {
@@ -159,17 +185,21 @@ export const generateCreativeImage = async (
                     }
                 }
             } catch (err: any) {
+                if (signal?.aborted) return null;
                 console.warn(`Creative Image Generation with model ${model} failed, trying next...`, err.message || err);
             }
         }
+
         return null;
     } catch (e) {
+        if (signal?.aborted) return null;
         console.error("Image gen failed entirely", e);
         return null;
     }
 };
 
-export const generateSearchAds = async (productContext: string, location: string, lang: Language, mode: GenerationMode, customDirection?: string): Promise<any> => {
+export const generateSearchAds = async (productContext: string, location: string, lang: Language, mode: GenerationMode, customDirection?: string, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -221,11 +251,13 @@ export const generateSearchAds = async (productContext: string, location: string
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
 
-export const generateEmailCampaign = async (context: string, location: string, industry: string, category: string, style: EmailStyle, lang: Language, mode: GenerationMode): Promise<any> => {
+export const generateEmailCampaign = async (context: string, location: string, industry: string, category: string, style: EmailStyle, lang: Language, mode: GenerationMode, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -256,11 +288,13 @@ export const generateEmailCampaign = async (context: string, location: string, i
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
 
-export const generateStoryboard = async (context: string, location: string, lang: Language, mode: GenerationMode): Promise<any> => {
+export const generateStoryboard = async (context: string, location: string, lang: Language, mode: GenerationMode, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -308,11 +342,13 @@ export const generateStoryboard = async (context: string, location: string, lang
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
 
-export const refreshStoryboardScene = async (context: string, scene: any, location: string, lang: Language, mode: GenerationMode): Promise<any> => {
+export const refreshStoryboardScene = async (context: string, scene: any, location: string, lang: Language, mode: GenerationMode, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -338,11 +374,13 @@ export const refreshStoryboardScene = async (context: string, scene: any, locati
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
 
-export const fetchIndustryNewsStream = async (industry: string, location: string, lang: Language, productContext: string, buyerContext: string, onChunk: (news: IndustryNews[]) => void, existingHeadlines?: string[]): Promise<void> => {
+export const fetchIndustryNewsStream = async (industry: string, location: string, lang: Language, productContext: string, buyerContext: string, onChunk: (news: IndustryNews[]) => void, existingHeadlines?: string[], signal?: AbortSignal): Promise<void> => {
+    if (signal?.aborted) return;
     const ai = getAI();
     const schema = {
         type: Type.ARRAY,
@@ -373,6 +411,7 @@ export const fetchIndustryNewsStream = async (industry: string, location: string
 
         let fullText = "";
         for await (const chunk of streamResponse) {
+            if (signal?.aborted) return;
             fullText += chunk.text;
             const objects = extractJsonArrayObjects(fullText);
             if (objects.length > 0) {
@@ -383,10 +422,14 @@ export const fetchIndustryNewsStream = async (industry: string, location: string
                 onChunk(newsItems);
             }
         }
-    } catch (e) { console.error("News stream failed", e); }
+    } catch (e) { 
+        if (signal?.aborted) return;
+        console.error("News stream failed", e); 
+    }
 };
 
-export const generateLinkedInPost = async (context: string, buyerContext: string, newsItem: any | null, lang: Language, mode: GenerationMode, style: string): Promise<any> => {
+export const generateLinkedInPost = async (context: string, buyerContext: string, newsItem: any | null, lang: Language, mode: GenerationMode, style: string, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -407,6 +450,7 @@ export const generateLinkedInPost = async (context: string, buyerContext: string
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
@@ -417,7 +461,8 @@ export const generateSalesPage = async (context: string, lang: Language, mode: G
     return null;
 };
 
-export const generatePhoneScripts = async (context: string, location: string, direction: string, lang: Language, mode: GenerationMode): Promise<any> => {
+export const generatePhoneScripts = async (context: string, location: string, direction: string, lang: Language, mode: GenerationMode, signal?: AbortSignal): Promise<any> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -451,6 +496,7 @@ export const generatePhoneScripts = async (context: string, location: string, di
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) { return null; }
 };
@@ -461,8 +507,10 @@ export const generateSoftwareRecommendations = async (
     location: string,
     lang: Language,
     mode: GenerationMode,
-    customDirection?: string
+    customDirection?: string,
+    signal?: AbortSignal
 ): Promise<{ tools: SoftwareRecommendation[] } | null> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -510,8 +558,10 @@ export const generateSoftwareRecommendations = async (
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text);
     } catch (e) {
+        if (signal?.aborted) return null;
         console.error("Failed generating software recommendations", e);
         return null;
     }
@@ -524,8 +574,10 @@ export const generateSingleSoftwareRecommendation = async (
     lang: Language,
     mode: GenerationMode,
     toolToReplace: any,
-    customDirection?: string
+    customDirection?: string,
+    signal?: AbortSignal
 ): Promise<SoftwareRecommendation | null> => {
+    if (signal?.aborted) return null;
     const ai = getAI();
     const schema = {
         type: Type.OBJECT,
@@ -572,8 +624,10 @@ export const generateSingleSoftwareRecommendation = async (
                 responseSchema: schema
             }
         });
+        if (signal?.aborted) return null;
         return extractJSON(response.text) as SoftwareRecommendation;
     } catch (e) {
+        if (signal?.aborted) return null;
         console.error("Failed generating single software recommendation", e);
         return null;
     }

@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from 'react';
 import { StrategyStep } from '../types';
-import { CheckCircle2, FileText, Menu } from 'lucide-react';
+import { CheckCircle2, FileText, Menu, Loader2 } from 'lucide-react';
 
 interface HeaderProps {
   steps: { id: StrategyStep; label: string }[];
@@ -9,12 +9,16 @@ interface HeaderProps {
   setActiveStep: (step: StrategyStep) => void;
   isStepComplete: (stepId: StrategyStep) => boolean;
   onMenuClick?: () => void;
+  taskQueue?: Set<string>;
 }
 
-export const Header: React.FC<HeaderProps> = ({ steps, activeStep, setActiveStep, isStepComplete, onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ steps, activeStep, setActiveStep, isStepComplete, onMenuClick, taskQueue }) => {
   // Split steps into Main Flow (Product -> Sales Page) and Utility (Blueprint)
   const mainSteps = steps.filter(s => s.id !== 'blueprint');
   const blueprintStep = steps.find(s => s.id === 'blueprint');
+
+  // Check if any background generation tasks are active
+  const hasActiveTasks = taskQueue && taskQueue.size > 0;
 
   // Refs for auto-scrolling
   const navContainerRef = useRef<HTMLDivElement>(null);
@@ -98,9 +102,21 @@ export const Header: React.FC<HeaderProps> = ({ steps, activeStep, setActiveStep
         </div>
       </div>
 
-      {/* Secondary / Utility Section (Blueprint) */}
-      {blueprintStep && canShowBlueprint && (
-        <div className="flex items-center pl-4 border-l border-gray-200 shrink-0 hidden md:flex">
+      {/* Secondary / Utility Section (Blueprint & Background Tasks Status) */}
+      <div className="flex items-center gap-3 pl-4 border-l border-gray-200 shrink-0">
+        {hasActiveTasks && (
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/70 text-indigo-700 text-[10px] font-bold tracking-wider animate-pulse shadow-sm"
+            title="A IA continua a gerar conteúdos em segundo plano..."
+          >
+            <Loader2 size={12} className="animate-spin text-indigo-600" />
+            <span className="hidden sm:inline">A gerar em segundo plano...</span>
+            <span className="sm:hidden">A gerar...</span>
+          </div>
+        )}
+
+        {blueprintStep && canShowBlueprint && (
+          <div className="hidden md:flex items-center">
             <button
                 onClick={() => setActiveStep('blueprint')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${
@@ -112,8 +128,9 @@ export const Header: React.FC<HeaderProps> = ({ steps, activeStep, setActiveStep
                 <FileText size={14} className={activeStep === 'blueprint' ? 'text-indigo-300' : 'text-gray-400'} />
                 {blueprintStep.label}
             </button>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </header>
   );
 };

@@ -6,10 +6,80 @@ import { Language, GenerationMode } from "../types";
  * Ensures we always create a fresh instance right before a call.
  * This handles potential API key updates from the user UI.
  */
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const getAI = () => {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || (typeof window !== 'undefined' ? ((window as any).__GEMINI_API_KEY__ || localStorage.getItem('gemini_api_key') || '') : '');
+    return new GoogleGenAI({ apiKey });
+};
 
 export const getModel = (mode: GenerationMode): string => {
-    return mode === 'Fast' ? 'gemini-3.7-flash' : 'gemini-3.1-pro-preview';
+    return mode === 'Fast' ? 'gemini-3.8-flash' : 'gemini-3.1-pro-preview';
+};
+
+/**
+ * Returns an ordered fallback chain for model generation.
+ * If the primary model (e.g. gemini-3.8-flash) encounters rate limits (429), resource exhaustion,
+ * or temporary unavailability, the system falls back automatically to proven fallback models.
+ */
+export const getModelFallbackChain = (primaryModel: string): string[] => {
+    const fallbacks: string[] = [primaryModel];
+    if (primaryModel === 'gemini-3.8-flash') {
+        fallbacks.push('gemini-2.5-flash', 'gemini-3.1-pro-preview');
+    } else if (primaryModel === 'gemini-3.1-pro-preview') {
+        fallbacks.push('gemini-3.8-flash', 'gemini-2.5-pro');
+    } else {
+        fallbacks.push('gemini-3.8-flash', 'gemini-2.5-flash');
+    }
+    return Array.from(new Set(fallbacks));
+};
+
+/**
+ * Helper to call ai.models.generateContent with automatic fallback through the candidate models
+ * when encountering quota/rate-limit (429), capacity errors (503), or model-specific unavailability.
+ */
+export const generateWithFallback = async (
+    ai: GoogleGenAI,
+    params: {
+        model: string;
+        contents: any;
+        config?: any;
+    },
+    signal?: AbortSignal
+): Promise<GenerateContentResponse> => {
+    const chain = getModelFallbackChain(params.model);
+    let lastError: any = null;
+
+    for (let i = 0; i < chain.length; i++) {
+        if (signal?.aborted) throw new Error("Aborted");
+        const currentModel = chain[i];
+        try {
+            const response = await ai.models.generateContent({
+                ...params,
+                model: currentModel
+            });
+            return response;
+        } catch (err: any) {
+            lastError = err;
+            const errStr = (err?.message || err?.toString() || "").toLowerCase();
+            const isLimitOrUnavailable = 
+                errStr.includes("429") || 
+                errStr.includes("quota") || 
+                errStr.includes("rate limit") || 
+                errStr.includes("resource_exhausted") || 
+                errStr.includes("unavailable") || 
+                errStr.includes("503") || 
+                errStr.includes("overloaded") ||
+                errStr.includes("model not found") ||
+                errStr.includes("not supported");
+
+            if (isLimitOrUnavailable && i < chain.length - 1) {
+                console.warn(`Model ${currentModel} reached limit or error. Falling back to ${chain[i + 1]}...`, err?.message || err);
+                continue;
+            }
+            // If it's another non-recoverable error or we exhausted all fallbacks, throw
+            throw err;
+        }
+    }
+    throw lastError;
 };
 
 /**
@@ -31,96 +101,56 @@ export const getLangName = (lang: Language) => {
 /**
  * Aggressively sanitizes context by removing ALL large base64 strings and nested image data.
  * Also handles exclusion of strategic pillars (Power Offer & Action Plan) if requested.
- * Enhanced to recursively check ALL string values for base64 patterns.
+ * Prevents RangeError / string length memory issues by using safe replacer functions.
  */
 export const sanitizeContext = (context: string | any, options?: { excludeStrategy?: boolean }): string => {
     if (!context) return "";
     
-    let parsed: any = null;
-    let isJson = false;
-    let preText = "";
-    let postText = "";
-
-    try {
-        if (typeof context === 'object' && context !== null) {
-            parsed = context;
-            isJson = true;
-        } else if (typeof context === 'string') {
-            const trimmed = context.trim();
-            // Try to parse the whole string first
-            if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                try {
-                    parsed = JSON.parse(trimmed);
-                    isJson = true;
-                } catch(e) { /* ignore */ }
-            }
-            
-            // If strict parse failed, try to find embedded JSON
-            if (!isJson) {
-                const firstBrace = context.indexOf('{');
-                const lastBrace = context.lastIndexOf('}');
-                if (firstBrace !== -1 && lastBrace > firstBrace) {
-                    const potentialJson = context.substring(firstBrace, lastBrace + 1);
-                    try {
-                        parsed = JSON.parse(potentialJson);
-                        if (parsed && (typeof parsed === 'object')) {
-                            isJson = true;
-                            preText = context.substring(0, firstBrace);
-                            postText = context.substring(lastBrace + 1);
-                        }
-                    } catch (e) {
-                        // Ignore
+    // If context is an object, serialize safely using a JSON replacer that skips base64 strings and oversized items
+    if (typeof context === 'object' && context !== null) {
+        try {
+            return JSON.stringify(context, (key, value) => {
+                if (options?.excludeStrategy && (key === 'bigIdea' || key === 'offer' || key === 'campaignPlan')) {
+                    return undefined;
+                }
+                if (key === 'creatives' || key === 'storyboards') {
+                    if (Array.isArray(value)) {
+                        return value.map((c: any) => ({
+                            id: c.id,
+                            style: c.style,
+                            headline: c.headline,
+                            subheadline: c.subheadline
+                        }));
                     }
                 }
-            }
-        }
-    } catch (e) {
-        isJson = false;
-    }
-
-    if (isJson && parsed && typeof parsed === 'object') {
-        const recursiveSanitize = (obj: any) => {
-            if (!obj || typeof obj !== 'object') return;
-            
-            // Exclude strategic pillars if requested at the top level
-            if (options?.excludeStrategy) {
-                if ('bigIdea' in obj) delete obj.bigIdea;
-                if ('offer' in obj) delete obj.offer;
-                if ('campaignPlan' in obj) delete obj.campaignPlan;
-            }
-
-            if (Array.isArray(obj)) {
-                obj.forEach((item, index) => {
-                    if (typeof item === 'string' && item.length > 500 && item.includes('data:image')) {
-                        obj[index] = "[Image Data Removed]";
-                    } else {
-                        recursiveSanitize(item);
+                if (typeof value === 'string') {
+                    if (value.startsWith('data:image/') || value.length > 2000) {
+                        if (value.includes('data:image') || value.includes('base64')) {
+                            return '[Image Data Removed]';
+                        }
                     }
-                });
-            } else {
-                Object.keys(obj).forEach(key => {
-                    const val = obj[key];
-                    if (typeof val === 'string' && val.length > 500 && val.includes('data:image')) {
-                        obj[key] = "[Image Data Removed]";
-                    } else if (typeof val === 'object' && val !== null) {
-                        recursiveSanitize(val);
-                    }
-                });
-            }
-        };
-        
-        try {
-            const copy = JSON.parse(JSON.stringify(parsed));
-            recursiveSanitize(copy);
-            const sanitizedJson = JSON.stringify(copy);
-            return preText + sanitizedJson + postText;
+                }
+                return value;
+            });
         } catch (e) {
-            return typeof context === 'string' ? context : JSON.stringify(context);
+            return "";
         }
     }
 
-    // Fallback: If it's a string we couldn't parse, just return it (or truncate if extremely long)
-    return typeof context === 'string' ? context : JSON.stringify(context);
+    if (typeof context === 'string') {
+        let str = context;
+        // Strip out large data URI strings if present
+        if (str.includes('data:image/')) {
+            str = str.replace(/data:image\/[a-zA-Z0-9+.-]+;base64,[A-Za-z0-9+/=]+/g, '[Image Data Removed]');
+        }
+        // Protect from oversized string payloads
+        if (str.length > 30000) {
+            str = str.substring(0, 30000) + '... [context truncated]';
+        }
+        return str;
+    }
+
+    return "";
 };
 
 export const extractJSON = (text: string | undefined | null): any => {

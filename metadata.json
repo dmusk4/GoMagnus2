@@ -1,5 +1,6 @@
 {
   "name": "MarketHero FINAL V23",
   "description": "A minimalist, product-first AI direct-response marketing copilot.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

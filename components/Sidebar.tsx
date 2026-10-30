@@ -1,6 +1,6 @@
 
 import React, { useRef, useMemo, useState } from 'react';
-import { Plus, Zap, Award, Globe, Download, Upload, Pin, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Zap, Award, Globe, Download, Upload, Pin, Trash2, AlertTriangle, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Product, Language, GenerationMode } from '../types';
 import { getTranslation } from '../translations';
 
@@ -19,6 +19,7 @@ interface SidebarProps {
   onDeleteProduct: (id: string) => void;
   isMobileOpen?: boolean;
   closeMobileSidebar?: () => void;
+  taskQueue?: Set<string>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -35,7 +36,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onImportData, 
   onDeleteProduct,
   isMobileOpen = false,
-  closeMobileSidebar
+  closeMobileSidebar,
+  taskQueue
 }) => {
   const t = getTranslation(language);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -138,17 +140,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
             {(!isCollapsed || isMobileOpen) && <div className="px-2 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-fade-in">{t.sidebar.products}</div>}
-            {sortedProducts.map(p => (
-            <div key={p.id} className="relative group">
+            {sortedProducts.map(p => {
+              const isProductGenerating = taskQueue && Array.from(taskQueue).some(taskKey => taskKey.endsWith(`-${p.id}`));
+              return (
+              <div key={p.id} className="relative group">
                 <button 
                 onClick={() => setActiveProductId(p.id)} 
                 className={`w-full text-left rounded-xl text-sm font-medium transition-all flex items-center ${(isCollapsed && !isMobileOpen) ? 'justify-center p-3' : 'px-4 py-3 justify-between'} ${activeProductId === p.id ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
                 title={(isCollapsed && !isMobileOpen) ? p.name : undefined}
                 >
                 {(isCollapsed && !isMobileOpen) ? (
-                    <div className="font-bold text-xs">{p.name.charAt(0).toUpperCase()}</div>
+                    <div className="relative font-bold text-xs">
+                      {p.name.charAt(0).toUpperCase()}
+                      {isProductGenerating && (
+                        <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      )}
+                    </div>
                 ) : (
-                    <span className="truncate font-bold mr-16 animate-fade-in">{p.name}</span>
+                    <div className="flex items-center gap-2 truncate mr-16 animate-fade-in">
+                      <span className="truncate font-bold">{p.name}</span>
+                      {isProductGenerating && (
+                        <span title="A gerar conteúdos...">
+                          <Loader2 size={13} className={`animate-spin shrink-0 ${activeProductId === p.id ? 'text-white/80' : 'text-indigo-500'}`} />
+                        </span>
+                      )}
+                    </div>
                 )}
                 </button>
                 {(!isCollapsed || isMobileOpen) && (
@@ -170,7 +186,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
             </div>
-            ))}
+            );
+            })}
             <button 
             onClick={handleAddProduct} 
             className={`w-full mt-6 flex items-center justify-center rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 text-sm font-bold transition-all ${(isCollapsed && !isMobileOpen) ? 'p-3' : 'p-3 space-x-2'}`}

@@ -31,6 +31,15 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
       return en;
   };
 
+  const parseBulletPoints = (text: string): string[] => {
+      if (!text) return [];
+      const raw = text.split(/\n|•|\r/).map(line => line.trim().replace(/^[-*•\d+.]\s*/, '').trim()).filter(line => line.length > 0);
+      if (raw.length > 1) return raw;
+      const sentences = text.split(/(?<=\.)\s+(?=[A-ZÀ-Ú])/).map(s => s.trim()).filter(s => s.length > 0);
+      if (sentences.length > 1 && text.length > 90) return sentences;
+      return [text];
+  };
+
   const handleExportPDF = () => {
     if (!blueprint) return;
     
@@ -496,7 +505,9 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
             addTitle(getLabel("Strategic Moat & Right to Win", "Estratégia MOAT e Right to Win", "Estrategia MOAT y Right to Win"), 11, true, 4);
             if (product.offer.moat.rightToWin) {
                 addTitle("  Offense (Right to Win):", 10, true, 2);
-                addText(`  ${product.offer.moat.rightToWin}`, 9, 4, true);
+                parseBulletPoints(product.offer.moat.rightToWin).forEach(pt => {
+                    addText(`  • ${pt}`, 9, 3, true);
+                });
             }
             if (product.offer.moat.gapExploited) {
                 addText(`  - Market Gap: ${product.offer.moat.gapExploited}`, 9, 4);
@@ -506,7 +517,9 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
                 addText(`  ${product.offer.moat.coreAdvantage}`, 9, 4);
             }
             if (product.offer.moat.whyDefensible) {
-                addText(`  - Why Defensible: ${product.offer.moat.whyDefensible}`, 9, 4);
+                parseBulletPoints(product.offer.moat.whyDefensible).forEach(pt => {
+                    addText(`  • Why Defensible: ${pt}`, 9, 3);
+                });
             }
             if (product.offer.moat.whereUnbeatable) {
                 addText(`  - Where Unbeatable: ${product.offer.moat.whereUnbeatable}`, 9, 6);
@@ -1715,13 +1728,27 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
                                             {product.offer.moat.rightToWin && (
                                                 <div className="space-y-2">
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">{getLabel("Right to Win core:", "Essência do Right to Win:", "Esencia de Right to Win:")}</span>
-                                                    <p className="text-sm font-semibold text-slate-200 leading-relaxed italic">"{product.offer.moat.rightToWin}"</p>
+                                                    <ul className="space-y-2">
+                                                        {parseBulletPoints(product.offer.moat.rightToWin).map((pt, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2.5 text-sm font-semibold text-slate-200 leading-relaxed">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0" />
+                                                                <span>{pt}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                             {product.offer.moat.gapExploited && (
                                                 <div className="space-y-2 mt-4">
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">{getLabel("Market Gap Exploited:", "Lacuna de Mercado Explorada:", "Brecha de Mercado Explotada:")}</span>
-                                                    <p className="text-xs text-slate-300 leading-relaxed font-medium">{product.offer.moat.gapExploited}</p>
+                                                    <ul className="space-y-1.5">
+                                                        {parseBulletPoints(product.offer.moat.gapExploited).map((pt, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-xs text-slate-300 leading-relaxed font-medium">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 mt-1.5 flex-shrink-0" />
+                                                                <span>{pt}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                         </div>
@@ -1742,13 +1769,27 @@ export const LaunchBlueprintStep: React.FC<LaunchBlueprintStepProps> = ({ produc
                                             {product.offer.moat.whyDefensible && (
                                                 <div className="space-y-2 mt-4">
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">{getLabel("Why competitors cannot match:", "Porque concorrentes não conseguem copiar:", "Por qué competidores no pueden copiar:")}</span>
-                                                    <p className="text-xs text-slate-500 leading-relaxed font-medium">{product.offer.moat.whyDefensible}</p>
+                                                    <ul className="space-y-1.5">
+                                                        {parseBulletPoints(product.offer.moat.whyDefensible).map((pt, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed font-medium">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
+                                                                <span>{pt}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                             {product.offer.moat.whereUnbeatable && (
                                                 <div className="space-y-2 mt-4">
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">{getLabel("Where you are unbeatable:", "Onde és totalmente imbatível:", "Dónde eres totalmente imbatible:")}</span>
-                                                    <p className="text-xs text-indigo-600 leading-relaxed font-bold">{product.offer.moat.whereUnbeatable}</p>
+                                                    <ul className="space-y-1.5">
+                                                        {parseBulletPoints(product.offer.moat.whereUnbeatable).map((pt, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-xs text-indigo-700 leading-relaxed font-semibold">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
+                                                                <span>{pt}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
                                                 </div>
                                             )}
                                         </div>

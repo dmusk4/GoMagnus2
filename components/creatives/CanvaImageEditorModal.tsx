@@ -39,10 +39,10 @@ interface CanvaImageEditorModalProps {
   language: Language;
   onSaveToCreative: (creativeId: string, newImageUrl: string, targetIndex?: number) => void;
   handleDownloadImage: (url: string, filename: string) => void;
-  onGenerateImage?: (id: string, prompt: string, base: string | string[] | undefined, comp: string, style?: string) => void;
+  onGenerateImage?: (id: string, prompt: string, base: string | string[] | undefined, comp: string | string[], style?: string) => void;
   onRefreshText?: (id: string, style: Creative['style']) => void;
   globalBaseImages?: string[];
-  globalShotType?: string;
+  globalShotType?: string | string[];
   isImgLoading?: boolean;
   isTextLoading?: boolean;
 }

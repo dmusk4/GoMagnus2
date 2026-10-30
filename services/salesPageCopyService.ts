@@ -647,7 +647,7 @@ export const refineLandingPageCopy = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.7-flash',
+            model: 'gemini-3.8-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -685,7 +685,7 @@ CRITICAL CONSTRAINTS:
 
     try {
         const result = await ai.models.generateContent({
-            model: "gemini-3.7-flash",
+            model: "gemini-3.8-flash",
             contents: prompt,
             config: {
                 temperature: 0.7,

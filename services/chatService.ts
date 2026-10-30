@@ -33,7 +33,7 @@ export const generateExpertChatStream = async function* (
   }));
 
   const responseStream = await ai.models.generateContentStream({
-    model: "gemini-3.7-flash",
+    model: "gemini-3.8-flash",
     config: {
       systemInstruction: systemInstructionText
     },
@@ -71,7 +71,7 @@ export const generateDynamicSuggestions = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-3.8-flash",
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",

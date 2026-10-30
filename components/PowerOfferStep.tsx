@@ -21,6 +21,15 @@ interface PowerOfferStepProps {
   onRefreshBigIdea?: () => void;
 }
 
+const parseBulletPoints = (text: string): string[] => {
+    if (!text) return [];
+    const raw = text.split(/\n|•|\r/).map(line => line.trim().replace(/^[-*•\d+.]\s*/, '').trim()).filter(line => line.length > 0);
+    if (raw.length > 1) return raw;
+    const sentences = text.split(/(?<=\.)\s+(?=[A-ZÀ-Ú])/).map(s => s.trim()).filter(s => s.length > 0);
+    if (sentences.length > 1 && text.length > 90) return sentences;
+    return [text];
+};
+
 export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, language, loading, onGenerate, onUpdateOffer, onUpdateIdea, onClear, showValidation = false, validationTrigger = 0, onUpdateFocus, taskQueue, onRefreshOffer, onRefreshBigIdea }) => {
     const offer = product.offer;
     const idea = product.bigIdea;
@@ -266,78 +275,113 @@ export const PowerOfferStep: React.FC<PowerOfferStepProps> = ({ product, languag
                                       </div>
 
                                       {/* Grid Layout: Offense vs. Defense */}
-                                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                                           {/* RIGHT TO WIN (Offense) - 5 columns */}
-                                          <div className="lg:col-span-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/15 p-6 rounded-2xl border border-emerald-500/20 shadow-sm space-y-4">
+                                          <div className="lg:col-span-5 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 p-5 rounded-2xl border border-emerald-500/20 shadow-sm flex flex-col justify-between space-y-3">
                                               <div>
-                                                  <div className="flex items-center gap-1.5 mb-2">
+                                                  <div className="flex items-center gap-2 mb-1.5">
                                                       <div className="p-1 bg-emerald-500/25 rounded-md text-emerald-800">
                                                           <Zap size={14} className="fill-emerald-800" />
                                                       </div>
-                                                      <h4 className="text-sm font-extrabold text-emerald-950 uppercase tracking-wider">
+                                                      <h4 className="text-xs font-black text-emerald-950 uppercase tracking-wider">
                                                           {(t.offerStep as any).moatOffenseHeader || "Ataque (Right to Win)"}
                                                       </h4>
                                                   </div>
-                                                  <p className="text-xs text-emerald-800/80 leading-relaxed mb-4 font-medium text-left">
-                                                      {(t.offerStep as any).moatOffenseSub || "Why customers choose you over alternatives right now."}
+                                                  <p className="text-[11px] text-emerald-800/80 leading-snug mb-3 font-medium text-left">
+                                                      {(t.offerStep as any).moatOffenseSub || "Por que os clientes te escolhem agora em vez de outras alternativas."}
                                                   </p>
                                                   {offer.moat.rightToWin && (
-                                                      <div className="bg-white/95 backdrop-blur-sm p-5 rounded-xl border border-emerald-200/50 shadow-sm">
-                                                          <p className="text-sm text-gray-900 leading-relaxed font-bold italic text-left">
-                                                              "{offer.moat.rightToWin}"
-                                                          </p>
+                                                      <div className="bg-white/95 backdrop-blur-sm p-3.5 rounded-xl border border-emerald-200/60 shadow-xs">
+                                                          <ul className="space-y-2 text-left">
+                                                              {parseBulletPoints(offer.moat.rightToWin).map((point, idx) => (
+                                                                  <li key={idx} className="flex items-start gap-2">
+                                                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+                                                                      <span className="text-xs text-gray-900 font-semibold leading-relaxed">
+                                                                          {point}
+                                                                      </span>
+                                                                  </li>
+                                                              ))}
+                                                          </ul>
                                                       </div>
                                                   )}
                                               </div>
                                           </div>
 
                                           {/* MOAT (Defense) - 7 columns */}
-                                          <div className="lg:col-span-7 bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-amber-200/40 shadow-sm space-y-4">
+                                          <div className="lg:col-span-7 bg-white/80 backdrop-blur-sm p-5 rounded-2xl border border-amber-200/50 shadow-sm space-y-3">
                                               <div>
-                                                  <div className="flex items-center gap-1.5 mb-2">
+                                                  <div className="flex items-center gap-2 mb-1.5">
                                                       <div className="p-1 bg-amber-500/20 rounded-md text-amber-800">
                                                           <Shield size={14} />
                                                       </div>
-                                                      <h4 className="text-sm font-extrabold text-amber-950 uppercase tracking-wider">
+                                                      <h4 className="text-xs font-black text-amber-950 uppercase tracking-wider">
                                                           {(t.offerStep as any).moatDefenseHeader || "Defesa (Estratégia MOAT)"}
                                                       </h4>
                                                   </div>
-                                                  <p className="text-xs text-amber-900/80 leading-relaxed mb-4 font-medium text-left">
-                                                      {(t.offerStep as any).moatDefenseSub || "The compounding, sustainable structural barrier protecting profits long-term."}
+                                                  <p className="text-[11px] text-amber-900/80 leading-snug mb-2 font-medium text-left">
+                                                      {(t.offerStep as any).moatDefenseSub || "Barreira estrutural e sustentável que protege lucros a longo prazo."}
                                                   </p>
                                               </div>
 
-                                              <div className="space-y-3">
+                                              <div className="space-y-2.5">
                                                   {/* Core Advantage */}
-                                                  <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-200/30 text-left">
-                                                      <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                                                  <div className="bg-amber-500/5 p-3.5 rounded-xl border border-amber-200/40 text-left">
+                                                      <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block mb-1">
                                                           {t.offerStep.moatCoreAdvantage}
                                                       </span>
-                                                      <p className="text-gray-900 font-bold text-sm leading-relaxed">{offer.moat.coreAdvantage}</p>
+                                                      <ul className="space-y-1">
+                                                          {parseBulletPoints(offer.moat.coreAdvantage).map((pt, idx) => (
+                                                              <li key={idx} className="flex items-start gap-2 text-xs text-gray-900 font-bold leading-relaxed">
+                                                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 shrink-0" />
+                                                                  <span>{pt}</span>
+                                                              </li>
+                                                          ))}
+                                                      </ul>
                                                   </div>
 
-                                                  {/* Grid items */}
-                                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-                                                      <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-100">
-                                                          <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block mb-1">
+                                                  {/* Grid items: Defensible & Unbeatable */}
+                                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+                                                      <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-100">
+                                                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1.5">
                                                               {t.offerStep.moatWhyDefensible}
                                                           </span>
-                                                          <p className="text-xs text-gray-700 leading-relaxed font-semibold">{offer.moat.whyDefensible}</p>
+                                                          <ul className="space-y-1.5">
+                                                              {parseBulletPoints(offer.moat.whyDefensible).map((pt, idx) => (
+                                                                  <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 leading-snug font-medium">
+                                                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                                                                      <span>{pt}</span>
+                                                                  </li>
+                                                              ))}
+                                                          </ul>
                                                       </div>
-                                                      <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-100">
-                                                          <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block mb-1">
+                                                      <div className="bg-gray-50/90 p-3 rounded-xl border border-gray-100">
+                                                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1.5">
                                                               {t.offerStep.moatWhereUnbeatable}
                                                           </span>
-                                                          <p className="text-xs text-gray-700 leading-relaxed font-semibold">{offer.moat.whereUnbeatable}</p>
+                                                          <ul className="space-y-1.5">
+                                                              {parseBulletPoints(offer.moat.whereUnbeatable).map((pt, idx) => (
+                                                                  <li key={idx} className="flex items-start gap-2 text-xs text-gray-700 leading-snug font-medium">
+                                                                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                                                                      <span>{pt}</span>
+                                                                  </li>
+                                                              ))}
+                                                          </ul>
                                                       </div>
                                                   </div>
 
                                                   {/* Gap exploited */}
-                                                  <div className="bg-amber-500/5 p-4 rounded-xl border border-amber-200/20 text-left">
-                                                      <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block mb-1">
+                                                  <div className="bg-amber-500/5 p-3 rounded-xl border border-amber-200/30 text-left">
+                                                      <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block mb-1.5">
                                                           {t.offerStep.moatGapExploited}
                                                       </span>
-                                                      <p className="text-xs text-gray-800 font-semibold leading-relaxed">{offer.moat.gapExploited}</p>
+                                                      <ul className="space-y-1">
+                                                          {parseBulletPoints(offer.moat.gapExploited).map((pt, idx) => (
+                                                              <li key={idx} className="flex items-start gap-2 text-xs text-gray-800 font-medium leading-snug">
+                                                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 shrink-0" />
+                                                                  <span>{pt}</span>
+                                                              </li>
+                                                          ))}
+                                                      </ul>
                                                   </div>
                                               </div>
                                           </div>

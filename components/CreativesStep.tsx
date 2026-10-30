@@ -1,11 +1,12 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 /* Added Plus and Layers to imports */
 import { 
-    Layout, MousePointer, Clapperboard, Check, Mail, Linkedin, Plus, Slash, Phone, Layers
+    Layout, MousePointer, Clapperboard, Check, Mail, Linkedin, Plus, Slash, Phone, Layers, Loader2
 } from 'lucide-react';
 import { Product, Creative, SearchAdGroup, SearchAd, Storyboard, Scene, Language, EmailStyle, LinkedInPost, PhoneCampaign, CreativeSettings, SoftwareRecommendation } from '../types';
 import { getTranslation } from '../translations';
 import { generatePhoneScripts, generateSoftwareRecommendations } from '../services/geminiService';
+import { downloadImageFile } from '../services/downloadHelper';
 
 // Import sub-modules
 import { MetaAdsStudio } from './creatives/MetaAdsStudio';
@@ -23,7 +24,7 @@ interface CreativesStepProps {
   taskQueue: Set<string>;
   onGenerateCreative: (style: Creative['style'], customDirection?: string) => void | Promise<void>;
   onRefreshText: (id: string, style: Creative['style']) => void | Promise<void>;
-  onGenerateImage: (id: string, prompt: string, base: string | string[] | undefined, composition: string, style?: string) => void | Promise<void>;
+  onGenerateImage: (id: string, prompt: string, base: string | string[] | undefined, composition: string | string[], style?: string) => void | Promise<void>;
   onGenerateSearchAds: (customDirection?: string) => void | Promise<void>;
   onGenerateEmailCampaign: (category: string, style: EmailStyle, customDirection?: string) => void | Promise<void>;
   onGenerateStoryboard: (style: string, customDirection?: string) => void | Promise<void>;
@@ -40,7 +41,8 @@ interface CreativesStepProps {
   onDeleteLinkedInPost?: (postId: string) => void;
   onUpdatePhoneCampaign?: (campaign: PhoneCampaign) => void;
   onRefreshScene?: (sceneNumber: number, storyboardId?: string) => void;
-  onUpdateProduct?: (updates: Partial<Product>) => void;
+  onGenerateSoftware?: (customDirection?: string) => void | Promise<void>;
+  onUpdateProduct?: (updates: Partial<Product>, targetId?: string) => void;
   showValidation?: boolean;
   setLightboxImage?: (url: string | null) => void;
 }
@@ -55,7 +57,8 @@ const COMPOSITIONS = [
   { label: "Low Angle", value: "Low Angle" },
   { label: "High Angle", value: "High Angle" },
   { label: "Over the Shoulder", value: "Over the Shoulder" },
-  { label: "Dutch Angle", value: "Dutch Angle" }
+  { label: "Dutch Angle", value: "Dutch Angle" },
+  { label: "Faceless", value: "Faceless" }
 ];
 
 const BASE_EMAIL_ANGLES = [
@@ -79,13 +82,16 @@ const BASE_SOCIAL_STYLES: Creative['style'][] = [
     'YouTube-Thumbnail',
     'Breaking News',
     'Highlight Method',
+    'Positive Vibe',
     'Secret Info',
     'Social Gossip',
     'Pop-Culture-Twist', 
     'Humor', 
     'Versus',
     'SMS-Mockup',
-    'Native-Social'
+    'Native-Social',
+    'Sign Meme',
+    'Handwritten Note'
 ];
 
 const BASE_STORYBOARD_STYLES = ['Viral-Hook', 'Humor/Skit', 'Trending-Audio', 'Problem-Solution', 'ASMR/Satisfying'];
@@ -103,18 +109,32 @@ const LINKEDIN_STYLES = [
 
 export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const { product, language, taskQueue, onFileUpload, onUpdate, onUpdateSearchAds, onUpdateStoryboard, onUpdateProduct, setLightboxImage } = props;
-  const [activeTab, setActiveTab] = useState<'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone' | 'software'>('social');
   
   // Safe Access to Product Settings
   const creativeSettings = product.creativeSettings || {};
+
+  const [activeTab, setActiveTab] = useState<'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone' | 'software'>(
+    (creativeSettings.activeCreativeTab as any) || 'social'
+  );
 
   const updateSettings = (updates: Partial<CreativeSettings>) => {
       if (onUpdateProduct) {
           onUpdateProduct({ 
               creativeSettings: { ...creativeSettings, ...updates } 
-          });
+          }, product.id);
       }
   };
+
+  const handleTabChange = (tab: 'social' | 'search' | 'email' | 'storyboard' | 'linkedin' | 'phone' | 'software') => {
+    setActiveTab(tab);
+    updateSettings({ activeCreativeTab: tab });
+  };
+
+  useEffect(() => {
+    if (creativeSettings.activeCreativeTab && creativeSettings.activeCreativeTab !== activeTab) {
+      setActiveTab(creativeSettings.activeCreativeTab as any);
+    }
+  }, [product.id, creativeSettings.activeCreativeTab]);
 
   const socialStyles = useMemo(() => {
     const base = [...BASE_SOCIAL_STYLES];
@@ -179,7 +199,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
 
   // Visual Controls (Meta Ads)
   const metaShotType = creativeSettings.metaShotType || "Medium Shot";
-  const setMetaShotType = (val: string) => updateSettings({ metaShotType: val });
+  const setMetaShotType = (val: string | string[]) => updateSettings({ metaShotType: val });
   const metaImagesCount = creativeSettings.metaImagesCount || 1;
   const setMetaImagesCount = (val: number) => updateSettings({ metaImagesCount: val });
 
@@ -211,7 +231,6 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const [linkedInCopyStatus, setLinkedInCopyStatus] = useState<string | null>(null);
   
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
-  const [isSoftwareLoading, setIsSoftwareLoading] = useState(false);
 
   const internalFileRef = useRef<HTMLInputElement>(null);
   const [targetIdForUpload, setTargetIdForUpload] = useState<{ type: 'social' | 'scene', id: string | number, storyboardId?: string } | null>(null);
@@ -229,6 +248,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   const isStoryboardLoading = taskQueue.has(`storyboard-gen-${product.id}`);
   const isNewsLoading = taskQueue.has(`news-fetch-${product.id}`);
   const isLinkedInLoading = taskQueue.has(`linkedin-gen-${product.id}`);
+  const isSoftwareLoading = taskQueue.has(`software-gen-${product.id}`);
 
   const isB2B = product.audienceType === 'B2B' || product.audienceType === 'Both';
 
@@ -291,12 +311,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
   };
 
   const handleDownloadImage = (url: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadImageFile(url, filename);
   };
 
   const exportToCSV = () => {
@@ -422,7 +437,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             >
                 <button 
                     ref={el => { tabRefs.current['social'] = el; }}
-                    onClick={() => setActiveTab('social')} 
+                    onClick={() => handleTabChange('social')} 
                     className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'social' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     <Layout size={18} /> Meta Ads
@@ -430,7 +445,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 </button>
                 <button 
                     ref={el => { tabRefs.current['search'] = el; }}
-                    onClick={() => setActiveTab('search')} 
+                    onClick={() => handleTabChange('search')} 
                     className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'search' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     <MousePointer size={18} /> Google Ads
@@ -439,7 +454,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 {isB2B && (
                     <button 
                         ref={el => { tabRefs.current['linkedin'] = el; }}
-                        onClick={() => setActiveTab('linkedin')} 
+                        onClick={() => handleTabChange('linkedin')} 
                         className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'linkedin' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                     >
                         <Linkedin size={18} /> {t.creativesStep.linkedinTitle}
@@ -448,7 +463,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 )}
                 <button 
                     ref={el => { tabRefs.current['email'] = el; }}
-                    onClick={() => setActiveTab('email')} 
+                    onClick={() => handleTabChange('email')} 
                     className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'email' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     <Mail size={18} /> E-mail
@@ -457,7 +472,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 {isB2B && (
                     <button 
                         ref={el => { tabRefs.current['phone'] = el; }}
-                        onClick={() => setActiveTab('phone')} 
+                        onClick={() => handleTabChange('phone')} 
                         className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'phone' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                     >
                         <Phone size={18} /> {t.creativesStep.phoneTitle}
@@ -466,7 +481,7 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 )}
                 <button 
                     ref={el => { tabRefs.current['storyboard'] = el; }}
-                    onClick={() => setActiveTab('storyboard')} 
+                    onClick={() => handleTabChange('storyboard')} 
                     className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'storyboard' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     <Clapperboard size={18} /> TikTok/Reels
@@ -474,11 +489,12 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
                 </button>
                 <button 
                     ref={el => { tabRefs.current['software'] = el; }}
-                    onClick={() => setActiveTab('software')} 
+                    onClick={() => handleTabChange('software')} 
                     className={`flex items-center gap-3 px-8 py-4 rounded-t-2xl text-sm font-bold transition-all relative whitespace-nowrap flex-shrink-0 ${activeTab === 'software' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                     <Layers size={18} /> Software
-                    {(product.softwareRecommendations && product.softwareRecommendations.length > 0) && <Check size={16} className="text-emerald-500 shrink-0 stroke-[3px]" />}
+                    {isSoftwareLoading && <Loader2 size={16} className="animate-spin text-indigo-600 shrink-0" />}
+                    {(!isSoftwareLoading && product.softwareRecommendations && product.softwareRecommendations.length > 0) && <Check size={16} className="text-emerald-500 shrink-0 stroke-[3px]" />}
                 </button>
             </div>
         </div>
@@ -629,35 +645,37 @@ export const CreativesStep: React.FC<CreativesStepProps> = (props) => {
             product={product}
             language={language}
             isSoftwareLoading={isSoftwareLoading}
+            taskQueue={taskQueue}
             onUpdate={(updatedData) => {
               if (onUpdateProduct) {
-                onUpdateProduct(updatedData);
+                onUpdateProduct(updatedData, product.id);
               }
             }}
             customSoftwareDirection={customSoftwareDirection}
             setCustomSoftwareDirection={setCustomSoftwareDirection}
             onGenerateSoftware={async (dir) => {
-              setIsSoftwareLoading(true);
-              try {
-                const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
-                const campaignContext = product.campaignPlan
-                   ? `Direction: ${product.campaignPlan.direction}. Core Message: ${product.campaignPlan.coreMessage}. Goal: ${product.campaignPlan.goal}`
-                   : "";
-                const result = await generateSoftwareRecommendations(productContext, campaignContext, product.location, language, 'Quality', dir);
-                if (result && result.tools) {
-                  const existing = product.softwareRecommendations || [];
-                  const newTools = result.tools.map((t, idx) => ({ 
-                    ...t, 
-                    id: `tool-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`
-                  }));
-                  if (onUpdateProduct) {
-                    onUpdateProduct({ softwareRecommendations: [...newTools, ...existing] });
+              if (props.onGenerateSoftware) {
+                props.onGenerateSoftware(dir);
+              } else {
+                try {
+                  const productContext = `Product: ${product.name}. Description: ${product.description}. ICP: ${product.decisionMaker}`;
+                  const campaignContext = product.campaignPlan
+                     ? `Direction: ${product.campaignPlan.direction}. Core Message: ${product.campaignPlan.coreMessage}. Goal: ${product.campaignPlan.goal}`
+                     : "";
+                  const result = await generateSoftwareRecommendations(productContext, campaignContext, product.location, language, 'Quality', dir);
+                  if (result && result.tools) {
+                    const existing = product.softwareRecommendations || [];
+                    const newTools = result.tools.map((t, idx) => ({ 
+                      ...t, 
+                      id: `tool-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`
+                    }));
+                    if (onUpdateProduct) {
+                      onUpdateProduct({ softwareRecommendations: [...newTools, ...existing] }, product.id);
+                    }
                   }
+                } catch (e) {
+                  console.error("Error generating software recommendations:", e);
                 }
-              } catch (e) {
-                console.error("Error generating software recommendations:", e);
-              } finally {
-                setIsSoftwareLoading(false);
               }
             }}
           />

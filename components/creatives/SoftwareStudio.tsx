@@ -10,6 +10,7 @@ interface SoftwareStudioProps {
   product: Product;
   language: Language;
   isSoftwareLoading: boolean;
+  taskQueue?: Set<string>;
   onUpdate: (val: any) => void;
   onGenerateSoftware: (direction: string) => void;
   customSoftwareDirection: string;
@@ -20,6 +21,7 @@ export const SoftwareStudio: React.FC<SoftwareStudioProps> = ({
   product,
   language,
   isSoftwareLoading,
+  taskQueue,
   onUpdate,
   onGenerateSoftware,
   customSoftwareDirection,
@@ -221,6 +223,21 @@ export const SoftwareStudio: React.FC<SoftwareStudioProps> = ({
           >
             <Zap size={18} className="mr-2 text-amber-500" /> {labels.emptyBtn}
           </button>
+        </div>
+      )}
+
+      {/* EMPTY STATE - LOADING */}
+      {recommendations.length === 0 && isSoftwareLoading && (
+        <div className="py-24 text-center border-2 border-indigo-100 rounded-[3rem] bg-indigo-50/20 w-full animate-pulse" id="software-loading-state">
+          <div className="w-16 h-16 bg-indigo-100/80 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-indigo-200">
+            <Loader2 size={32} className="text-indigo-600 animate-spin" />
+          </div>
+          <h3 className="text-2xl font-display font-bold text-gray-900 mb-2">{labels.generating}</h3>
+          <p className="text-gray-500 max-w-md mx-auto text-sm">
+            {isPt 
+              ? 'A mapear oportunidades de automação, bots e ferramentas digitais personalizadas para este produto...' 
+              : 'Mapping custom automation, bots, and digital tool opportunities for this product...'}
+          </p>
         </div>
       )}
 
